@@ -1,0 +1,1 @@
+CREATE TABLE tenants (id TEXT PRIMARY KEY, slug TEXT NOT NULL UNIQUE, name TEXT NOT NULL, timezone TEXT NOT NULL DEFAULT 'Africa/Casablanca', active INTEGER NOT NULL DEFAULT 1 CHECK(active IN (0,1)));

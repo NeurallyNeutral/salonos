@@ -1,6 +1,6 @@
 name = "salonos-handoff"
 main = "src/index.ts"
-compatibility_date = "2026-09-01"
+compatibility_date = "2026-07-30"
 
 [triggers]
 crons = ["*/15 * * * *"]

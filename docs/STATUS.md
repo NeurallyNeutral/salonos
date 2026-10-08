@@ -11,3 +11,5 @@ Queue: M0 foundation and migration; M1 authentication/configuration; M2 atomic b
 External blockers: Cloudflare provisioning/deployment approval, email domain and credentials, Meta account/phone/templates/credentials, payment processor selection/credentials, merchant contracts and privacy/legal review. These do not block local implementation.
 
 Evidence will be appended per milestone. The original handoff test checks packaging only; it is not product evidence.
+
+M0: Foundation implemented. `npm run typecheck`, `npm run build`, `npm test` pass (2 tests, including real workerd/D1); dependency audit zero vulnerabilities after patched sharp/undici overrides. Initial GitHub import verified by identical tree SHA. Local persistent runtime and fixture seeds implemented. Browser acceptance scenarios will be added with the real UI in M4. No live deployment attempted.

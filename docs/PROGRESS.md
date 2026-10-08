@@ -4,7 +4,7 @@ Status at handoff: `SAFE_BOOTSTRAP_ONLY`.
 
 2026-10-08 baseline audit: no product behavior implemented in root source; reference backends are unsafe/simulated and excluded from runtime. Project-local Git initialized; private empty GitHub repository verified. Native Git authentication unavailable; connected GitHub API available. See STATUS.md for the work queue and external gates.
 
-- [ ] M0 foundation and demo API integration
+- [x] M0 foundation: real local workerd/D1, migration/seed runner, build/typecheck and persistent demo launcher (2 tests passed)
 - [ ] M1 tenant and authentication security
 - [ ] M2 availability + atomic bookings
 - [ ] M3 reliable delivery + providers
