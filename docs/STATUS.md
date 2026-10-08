@@ -13,3 +13,5 @@ External blockers: Cloudflare provisioning/deployment approval, email domain and
 Evidence will be appended per milestone. The original handoff test checks packaging only; it is not product evidence.
 
 M0: Foundation implemented. `npm run typecheck`, `npm run build`, `npm test` pass (2 tests, including real workerd/D1); dependency audit zero vulnerabilities after patched sharp/undici overrides. Initial GitHub import verified by identical tree SHA. Local persistent runtime and fixture seeds implemented. Browser acceptance scenarios will be added with the real UI in M4. No live deployment attempted.
+
+M1: Merchant sessions, atomic single-use magic links, secure HttpOnly SameSite cookies, CSRF/origin checks, staff/owner authorization, service/resource/hours/blackout settings and tenant-scoped composite foreign keys implemented. Typecheck and all 3 tests pass; the M1 integration scenario exercises replay, expiry, forged/tampered tokens, logout/session expiry, CSRF, foreign IDs and transaction rollback. Live email remains unconfigured until M3 adapters. No public tenant registration/admin route.
