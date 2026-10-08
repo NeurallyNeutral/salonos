@@ -1,2 +1,20 @@
-import {defineConfig} from '@playwright/test';
-export default defineConfig({testDir:'./tests/e2e',fullyParallel:false,workers:1,timeout:60000,use:{baseURL:'http://localhost:8790',viewport:{width:360,height:800},trace:'retain-on-failure',screenshot:'only-on-failure'},webServer:{command:'node scripts/e2e-server.mjs',url:'http://localhost:8790/health',reuseExistingServer:false,timeout:30000},reporter:[['list'],['html',{open:'never'}]]});
+import { defineConfig } from '@playwright/test';
+export default defineConfig({
+  testDir: './tests/e2e',
+  fullyParallel: false,
+  workers: 1,
+  timeout: 60000,
+  use: {
+    baseURL: 'http://localhost:8790',
+    viewport: { width: 360, height: 800 },
+    trace: 'retain-on-failure',
+    screenshot: 'only-on-failure',
+  },
+  webServer: {
+    command: 'node scripts/e2e-server.mjs',
+    url: 'http://localhost:8790/health',
+    reuseExistingServer: false,
+    timeout: 30000,
+  },
+  reporter: [['list'], ['html', { open: 'never' }]],
+});

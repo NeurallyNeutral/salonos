@@ -8,20 +8,27 @@
     "demo": "node scripts/demo.mjs",
     "build": "node scripts/build.mjs",
     "typecheck": "tsc --noEmit",
+    "lint": "node scripts/lint.mjs",
     "test": "node --test --test-concurrency=1 tests/*.test.mjs",
     "test:e2e": "playwright test",
-    "check": "npm run typecheck && npm run build && npm test",
+    "check": "npm run lint && npm run typecheck && npm run build && npm test",
     "test:handoff": "node scripts/verify-handoff.mjs",
-    "db:local": "wrangler d1 migrations apply DB --local"
+    "db:local": "wrangler d1 migrations apply DB --local",
+    "demo:scenario": "node scripts/demo-scenario.mjs",
+    "test:recovery": "node scripts/recovery-rehearsal.mjs",
+    "test:safety": "node scripts/verify-source.mjs",
+    "provision:local": "node scripts/provision.mjs --local"
   },
   "dependencies": {
     "hono": "4.13.13"
   },
   "devDependencies": {
+    "@axe-core/playwright": "4.13.0",
     "@cloudflare/workers-types": "^5.20261008.1",
     "@playwright/test": "^1.64.0",
     "esbuild": "^0.28.2",
     "miniflare": "4.20260730.0",
+    "prettier": "3.9.9",
     "typescript": "^7.0.2",
     "wrangler": "^4.148.0"
   },

@@ -6,7 +6,7 @@ compatibility_date = "2026-07-30"
 command = "npm run build"
 
 [triggers]
-crons = ["*/15 * * * *"]
+crons = ["* * * * *"]
 
 [[d1_databases]]
 binding = "DB"

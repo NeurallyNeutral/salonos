@@ -1,28 +1,16 @@
-# Connect this handoff to Codex/GitHub on Windows
+# GitHub setup on Windows
 
-There was no dedicated SalonOS repository in the connected GitHub account at handoff, and these tools cannot create a new repository. Do NOT add this project to the unrelated existing couture/caftan repo.
+The private repository already exists at https://github.com/NeurallyNeutral/salonos. The initial safe import and M0–M5 were published, with M6 tracked in PR #1 on `codex/pilot-implementation`. Do not initialize another repository or replace its history.
 
-## Easiest local Codex path
-1. Unzip `SalonOS_Codex_Handoff.zip` once into a directory.
-2. Open the extracted folder as a Codex working directory (Codex desktop or CLI, depending on your installation).
-3. Paste `CODEX_START_PROMPT.txt`. Codex should read `AGENTS.md` automatically; explicitly ask it to read if necessary.
-4. Review its first plan and authorize local edits. Cloud credentials and production changes require explicit approval.
+This workspace used the authorized GitHub connector because native Git credentials could not access the repository. Local and API commit IDs may differ, but publication verifies identical Git tree hashes. Only NeurallyNeutral/salonos is authorized; keep it private.
 
-## Preferred Git-backed path
-1. Create a new **private**, empty repository named `salonos` under your own GitHub account. Do not initialize with a conflicting README.
-2. Open PowerShell in the extracted handoff folder.
-3. Use the following (requires git installed):
+For ordinary native Git work, authenticate as the owner through Git Credential Manager (or install GitHub CLI and run `gh auth login --hostname github.com --git-protocol https --web`, then `gh auth setup-git`). Never paste a token into source, a remote URL or a chat. Clone a fresh checkout of the remote branch if you need its exact remote commit ancestry; preserve this workspace and any uncommitted work.
 
-```powershell
-git init -b main
-git add .
-git commit -m "chore: SalonOS Codex handoff and safe bootstrap"
-git remote add origin https://github.com/NeurallyNeutral/salonos.git
-git push -u origin main
-```
+~~~powershell
+git clone --branch codex/pilot-implementation https://github.com/NeurallyNeutral/salonos.git salonos-clean
+Set-Location salonos-clean
+npm ci
+npm run demo
+~~~
 
-Replace the remote URL if you name the repository differently. GitHub authentication is handled by your installed credential manager; no passwords/tokens in commits.
-
-Then open `NeurallyNeutral/salonos` in Codex and paste the starter prompt. Grant Codex GitHub source-code permissions for this private repository (commits, branches, PRs, issues, CI), but **never** allow Codex to deploy or configure auto-deployment through Vercel; only the owner may deploy there.
-
-In ChatGPT, the GitHub account may already be connected, but newly created repositories must be authorized under **Settings > Plugins > GitHub > manage repository access**. In Codex Cloud, select this repository when creating a cloud environment. Codex Cloud only sees files committed to the repository or explicitly made available in its environment: local handoff ZIP downloads are not magically accessible to the cloud agent.
+No external deployment follows from a push or merge. CI performs local tests only. Vercel deployment, project linking and automatic deployment configuration remain forbidden to the agent. Cloudflare provisioning/deployment also requires explicit owner approval.

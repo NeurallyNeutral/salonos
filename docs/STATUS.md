@@ -1,6 +1,22 @@
 # SalonOS status
 
-Updated 2026-10-08. CODE_COMPLETE: NO. LIVE_PROVIDER_VERIFIED: NO. PILOT_READY: NO.
+Updated 2026-10-08. CODE_COMPLETE: PENDING FINAL CI. LIVE_PROVIDER_VERIFIED: NO. PILOT_READY: NO.
+
+M0–M6 source is implemented. M6 uncommitted work from the interrupted session was preserved and extended. Local final gates are being recorded below; PR #1 remains unmerged until final source and GitHub CI checks pass. No live deployment or provider onboarding was attempted.
+
+## Current M6 scope and remaining gates
+
+Local release evidence (Node 24.11.1, Windows, 2026-10-08): clean `npm ci` PASS; `npm run check` PASS (format/syntax, typecheck, bundle, 26 Node test scenarios: 26 passed, 0 failed, 0 skipped); `npm run test:e2e` PASS (5/5 Chromium mobile scenarios, including axe and keyboard checks, 34.7 seconds); `npm audit --audit-level=moderate` PASS (0 vulnerabilities); `npm run demo:scenario` PASS; `npm run test:recovery` PASS; `npm run test:handoff` PASS. Recovery: 2 bookings, 8 claims, exact ten-table snapshot equality, foreign keys and payment/refund/120-centime balance; local backup 43 ms, restore/verification 2083 ms. These timings are not a production SLA. Screenshot review found no clipped controls at 360px. Final tracked-source scan and GitHub head CI are the remaining release checks at this commit.
+
+M6 adds privacy export/anonymization and race-safe retention, operational health, immutable subscription events with disabled/mock billing, restart/recovery fixtures, current/previous key rotation and full re-encryption, stable unsubscribe links, receipt-race protection, consent email snapshots, large exports/pagination, local provisioning, source checks, browser accessibility and a complete runbook.
+
+Audit outcomes: forty public contenders and forty mixed manual/public contenders each produce exactly one booking and 39 conflicts. Concurrent cancel/reschedule preserves occupancy with one sensitive-token winner. Retention rechecks activity/current policy inside its transaction. Erasure cannot be undone by a prepared retention message or key rotation. Delivered receipts cannot be downgraded by later failed/uncertain send results. Display/conversion uses canonical Worker timezone data. Seeds do not resurrect deleted schedules after restart.
+
+Live blockers: approved Cloudflare provisioning/deployment and live recovery; Resend sender/domain/credentials and signed delivery; Meta assets/current version/templates/credentials and signed delivery; live scheduler/alert destination; contracts/privacy/CNDP review and actual merchant review URL. Commercial subscription collection is disabled pending provider/terms selection. Full Arabic translation/RTL QA, production-scale soak testing and independent penetration testing are not delivered features. Native Git auth is unavailable here; authorized connector publication verifies content through identical Git tree hashes.
+
+See [README](../README.md), [QA coverage](QA_MATRIX.md), [runbook](RUNBOOK.md), [provider contracts](PROVIDERS.md) and [release checklist](RELEASE_CHECKLIST.md) for commands and owner actions.
+
+## Historical milestone record
 
 Baseline audit: the only working application endpoints are /health and a deliberately failing /ready. No application migrations, authentication, real booking, delivery or product tests exist. The reference Worker has unauthenticated tenant reads and non-atomic booking. The reference demo uses memory and browser fixtures. Both remain quarantined, outside the application build.
 
