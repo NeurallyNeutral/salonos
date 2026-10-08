@@ -24,3 +24,11 @@ Google rules explicitly prohibit incentivized reviews and selectively soliciting
 
 ## Distinct purpose
 Loyalty = encourage repeat visits and quantify returning customers; review prompts = neutral customer feedback; never tie their incentives, and do not promise a measured increase without a real pilot comparison.
+
+## Implemented accounting policy
+
+Payments require a completed visit and an explicit merchant confirmation of actual receipt. They remain `merchant_reported`; processor verification is null. Total cash plus redeemed credit cannot exceed the booking's recorded invoice value. Eligible cash can exclude non-eligible items; redemption does not earn new credit. Rates, caps and expiry are snapshotted per payment. Only owners record payments/refunds; arbitrary manual balance adjustments have no merchant API.
+
+Redemptions require recorded in-person identity/consent verification, are allocated FIFO to unexpired grants, and cannot exceed the accounting balance or available grants. Refunds append proportional earned-credit reversals; cumulative rounding avoids split-refund drift. Refunds can separately restore previously redeemed credit, limited to the original discount. Restored credit receives the original payment policy's expiry duration beginning at restoration. Refunds never deduct already expired unused credit twice. Spent credit reversed by a refund may produce a negative balance; no cash debt is collected and further redemption is blocked until future credits recover it.
+
+Expiry defaults to none (0 days). A configured expiry affects new grants only and appends expiry events; past ledger rows never change. These conditions require merchant/customer disclosure and legal review before activation. No live legal/compliance claim is made.

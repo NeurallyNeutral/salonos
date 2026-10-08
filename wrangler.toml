@@ -1,9 +1,12 @@
 name = "salonos-handoff"
-main = "src/index.ts"
-compatibility_date = "2026-09-01"
+main = "dist/worker.mjs"
+compatibility_date = "2026-07-30"
+
+[build]
+command = "npm run build"
 
 [triggers]
-crons = ["*/15 * * * *"]
+crons = ["* * * * *"]
 
 [[d1_databases]]
 binding = "DB"

@@ -1,0 +1,10 @@
+ALTER TABLE bookings ADD COLUMN contact_email TEXT;
+UPDATE bookings SET contact_email=(SELECT email FROM customers WHERE customers.tenant_id=bookings.tenant_id AND customers.id=bookings.customer_id);
+ALTER TABLE tenants ADD COLUMN retention_days INTEGER NOT NULL DEFAULT 0 CHECK(retention_days BETWEEN 0 AND 3650);
+ALTER TABLE rate_limits ADD COLUMN expires_at INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE customers ADD COLUMN unsubscribe_hash TEXT;
+ALTER TABLE customers ADD COLUMN unsubscribe_cipher TEXT;
+CREATE TABLE subscription_events(id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL REFERENCES tenants(id),provider TEXT NOT NULL CHECK(provider IN ('mock','operator')),event_key TEXT NOT NULL,status TEXT NOT NULL CHECK(status IN ('trial','active','past_due','cancelled')),created_at INTEGER NOT NULL,UNIQUE(tenant_id,event_key));
+CREATE TRIGGER subscription_event_apply AFTER INSERT ON subscription_events BEGIN UPDATE tenant_subscription_status SET status=NEW.status WHERE tenant_id=NEW.tenant_id; END;
+CREATE TRIGGER subscription_no_update BEFORE UPDATE ON subscription_events BEGIN SELECT RAISE(ABORT,'append_only_subscription'); END;
+CREATE TRIGGER subscription_no_delete BEFORE DELETE ON subscription_events BEGIN SELECT RAISE(ABORT,'append_only_subscription'); END;
