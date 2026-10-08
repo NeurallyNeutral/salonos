@@ -1,10 +1,10 @@
 import { Hono } from 'hono';
 import { App, Env, Row, Ctx, stmt, rows, str, phone, email, flag, integer, token, hash, hmac, seal, unseal, now, id, fail, limit, audit } from './core';
 import { merchant } from './auth';
-import { tenantBySlug, offers, verifyOffer, CELL } from './availability';
+import { tenantBySlug, offers, verifyOffer, CELL, displayTime, localParts } from './availability';
 import { bookingMessages } from './outbox';
 export const publicApi=new Hono<App>();
-publicApi.get('/:slug',async c=>{const t=await tenantBySlug(c.env,c.req.param('slug'));return c.json({tenant:{name:t.name,slug:t.slug,timezone:t.timezone,paused:t.paused,logo_url:t.logo_url,loyalty_bps:t.loyalty_bps},services:await rows(c.env.DB,'SELECT id,name,duration_min,buffer_min,price_centimes FROM services WHERE tenant_id=? AND active=1',t.id)});});
+publicApi.get('/:slug',async c=>{const t=await tenantBySlug(c.env,c.req.param('slug'));return c.json({tenant:{name:t.name,slug:t.slug,timezone:t.timezone,local_today:localParts(now(),t.timezone).date,paused:t.paused,logo_url:t.logo_url,loyalty_bps:t.loyalty_bps},services:await rows(c.env.DB,'SELECT id,name,duration_min,buffer_min,price_centimes FROM services WHERE tenant_id=? AND active=1',t.id)});});
 publicApi.get('/:slug/availability',async c=>{await limit(c,'availability',120);const t=await tenantBySlug(c.env,c.req.param('slug'));return c.json({slots:await offers(c.env,t,str(c.req.query('service_id')),str(c.req.query('date')))});});
 function claim(db:D1Database,b:Row){return stmt(db,'WITH RECURSIVE slots(x) AS (SELECT ? UNION ALL SELECT x+300000 FROM slots WHERE x+300000<?) INSERT INTO booking_claims SELECT ?,?,x,? FROM slots',b.starts_at,b.occupied_until,b.tenant_id,b.resource_id,b.id);}
 async function createBooking(c:Ctx,t:Row,manual=false) {
@@ -17,7 +17,7 @@ async function createBooking(c:Ctx,t:Row,manual=false) {
   const replay=async()=>{const r=await stmt(c.env.DB,'SELECT request_hash,response_cipher FROM bookings WHERE tenant_id=? AND idempotency_key=?',t.id,key).first<Row>();if(r){if(r.request_hash!==requestHash)fail(409,'idempotency_mismatch');return unseal(c.env.APP_SECRET,r.response_cipher);}return null;};
   const existing=await replay();if(existing)return c.json(existing);
   const {p,service,end}=await verifyOffer(c.env,t,b.offer,manual);const bookingId=id(),manage=token(),customerId=await hmac(c.env.APP_SECRET,'customer:'+t.id+':'+customer.phone),created=now();
-  const response={id:bookingId,manage_token:manage,starts_at:p.starts_at,notification_status:'queued_or_suppressed'};
+  const response={id:bookingId,manage_token:manage,starts_at:p.starts_at,display_starts_at:displayTime(p.starts_at,t.timezone),notification_status:'queued_or_suppressed'};
   const booking={id:bookingId,tenant_id:t.id,customer_id:customerId,resource_id:p.resource_id,starts_at:p.starts_at,occupied_until:end,revision:1,...consent};
   const db=c.env.DB;
   try{await db.batch([
@@ -32,12 +32,12 @@ merchant.get('/availability',async c=>{const t=await stmt(c.env.DB,'SELECT * FRO
 merchant.post('/bookings',async c=>createBooking(c,(await stmt(c.env.DB,'SELECT * FROM tenants WHERE id=?',c.get('merchant').tenant_id).first<Row>())!,true));
 merchant.get('/bookings',async c=>{
   const from=Number(c.req.query('from')??0),to=Number(c.req.query('to')??9000000000000);integer(from,0,9000000000000);integer(to,from+1,9000000000000);
-  return c.json({bookings:await rows(c.env.DB,'SELECT b.id,b.customer_id,b.service_id,b.resource_id,b.starts_at,b.ends_at,b.price_centimes,b.status,b.source,b.revision,c.name,c.phone,c.email,s.name service_name FROM bookings b JOIN customers c ON c.tenant_id=b.tenant_id AND c.id=b.customer_id JOIN services s ON s.tenant_id=b.tenant_id AND s.id=b.service_id WHERE b.tenant_id=? AND b.starts_at>=? AND b.starts_at<? ORDER BY b.starts_at LIMIT 500',c.get('merchant').tenant_id,from,to)});
+  const timezone=(await stmt(c.env.DB,'SELECT timezone FROM tenants WHERE id=?',c.get('merchant').tenant_id).first<Row>())!.timezone;return c.json({bookings:(await rows(c.env.DB,'SELECT b.id,b.customer_id,b.service_id,b.resource_id,b.starts_at,b.ends_at,b.price_centimes,b.status,b.source,b.revision,c.name,c.phone,c.email,s.name service_name FROM bookings b JOIN customers c ON c.tenant_id=b.tenant_id AND c.id=b.customer_id JOIN services s ON s.tenant_id=b.tenant_id AND s.id=b.service_id WHERE b.tenant_id=? AND b.starts_at>=? AND b.starts_at<? ORDER BY b.starts_at LIMIT 500',c.get('merchant').tenant_id,from,to)).map(b=>({...b,local_date:localParts(b.starts_at,timezone).date,display_starts_at:displayTime(b.starts_at,timezone)}))});
 });
 export const manageApi=new Hono<App>();
 manageApi.use('/:id/*',async(c,next)=>{await limit(c,'manage',60);await next();});
 async function managed(c:Ctx){const key=c.req.param('id'),raw=c.req.header('Authorization')?.replace(/^Bearer /,'')||'';const b=await stmt(c.env.DB,'SELECT * FROM bookings WHERE id=? AND manage_hash=? AND manage_expires>?',key,await hash(raw),now()).first<Row>();if(!b)fail(404,'not_found');return b;}
-manageApi.get('/:id',async c=>{const b=await managed(c);return c.json({id:b.id,starts_at:b.starts_at,ends_at:b.ends_at,status:b.status,service_id:b.service_id,revision:b.revision,slug:(await stmt(c.env.DB,'SELECT slug FROM tenants WHERE id=?',b.tenant_id).first<Row>())!.slug});});
+manageApi.get('/:id',async c=>{const b=await managed(c),t=(await stmt(c.env.DB,'SELECT slug,timezone FROM tenants WHERE id=?',b.tenant_id).first<Row>())!;return c.json({id:b.id,display_starts_at:displayTime(b.starts_at,t.timezone),starts_at:b.starts_at,ends_at:b.ends_at,status:b.status,service_id:b.service_id,revision:b.revision,slug:(await stmt(c.env.DB,'SELECT slug FROM tenants WHERE id=?',b.tenant_id).first<Row>())!.slug});});
 async function changeBooking(c:Ctx,b:Row,kind:'cancel'|'reschedule'|'attendance',isMerchant:boolean){
   const db=c.env.DB,t=(await stmt(db,'SELECT * FROM tenants WHERE id=?',b.tenant_id).first<Row>())!,body=await c.req.json<Row>();
   if(b.status!=='confirmed')fail(409,'invalid_status');if(!isMerchant&&b.starts_at<=now())fail(409,'visit_started');

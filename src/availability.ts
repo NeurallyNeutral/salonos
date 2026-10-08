@@ -1,5 +1,6 @@
 import { Env, Row, stmt, rows, fail, hmac, equal, now } from './core';
 export const CELL=300000;
+export const displayTime=(time:number,zone:string)=>new Intl.DateTimeFormat('fr-MA',{timeZone:zone,dateStyle:'medium',timeStyle:'short'}).format(time);
 const formatters=new Map<string,Intl.DateTimeFormat>();
 export function localParts(time:number,zone:string) {
   let f=formatters.get(zone);if(!f){f=new Intl.DateTimeFormat('en-CA',{timeZone:zone,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'});formatters.set(zone,f);}

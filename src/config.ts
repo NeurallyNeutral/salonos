@@ -1,12 +1,15 @@
 import { merchant } from './auth';
 import { Row, stmt, rows, owner, str, integer, flag, id, fail, audit } from './core';
+import { displayTime, localParts } from './availability';
 merchant.get('/config', async c => {
   const tid=c.get('merchant').tenant_id, db=c.env.DB;
-  const tenant=await stmt(db,'SELECT * FROM tenants WHERE id=?',tid).first();
+  const tenant=await stmt(db,'SELECT * FROM tenants WHERE id=?',tid).first<Row>();
   const out:Row={tenant};
   for(const [key,table] of Object.entries({services:'services',resources:'resources',assignments:'service_resources',hours:'weekly_hours',blackouts:'blackouts',subscription:'tenant_subscription_status'})) out[key]=await rows(db,`SELECT * FROM ${table} WHERE tenant_id=?`,tid);
-  return c.json(out);
+  out.local_today=localParts(Date.now(),tenant!.timezone).date;
+  out.blackouts=out.blackouts.map((b:Row)=>({...b,display_starts_at:displayTime(b.starts_at,tenant!.timezone),display_ends_at:displayTime(b.ends_at,tenant!.timezone)}));return c.json(out);
 });
+merchant.post('/local-time',async c=>{const b=await c.req.json<Row>(),value=str(b.value,16);if(!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(value))fail(400,'invalid_date');const t=(await stmt(c.env.DB,'SELECT timezone FROM tenants WHERE id=?',c.get('merchant').tenant_id).first<Row>())!;const base=Date.parse(value.slice(0,10)+'T00:00:00Z'),minute=Number(value.slice(11,13))*60+Number(value.slice(14)),matches=[];for(let time=base-14*3600000;time<base+38*3600000;time+=60000){const p=localParts(time,t.timezone);if(p.date===value.slice(0,10)&&p.minute===minute)matches.push(time);}if(matches.length!==1)fail(400,'ambiguous_or_invalid_local_time');return c.json({timestamp:matches[0]});});
 merchant.patch('/settings', async c => {
   const m=owner(c),b=await c.req.json<Row>(),changes:Row={};
   for(const [k,v] of Object.entries(b)) {

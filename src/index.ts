@@ -7,6 +7,10 @@ import './config';
 import { publicApi, manageApi } from './bookings';
 import { webhooks, processOutbox } from './delivery';
 import { messageText } from './providers';
+import './workflows';
+import html from '../web/index.html';
+import css from '../web/app.css';
+import javascript from '../web/app.txt';
 
 const app = new Hono<App>();
 app.use('*',bodyLimit({maxSize:16384,onError:c=>c.json({error:'body_too_large'},413)}));
@@ -30,5 +34,8 @@ app.post('/unsubscribe',async c=>{const b=await c.req.json();if(typeof b.custome
 app.post('/dev/process',async c=>{if(!local(c))fail(404,'not_found');return c.json(await processOutbox(c.env));});
 app.get('/dev/messages',async c=>{if(!local(c))fail(404,'not_found');const messages=await rows(c.env.DB,'SELECT d.*,o.kind,o.state FROM mock_deliveries d JOIN notification_outbox o ON o.id=d.outbox_id ORDER BY d.created_at DESC LIMIT 100');return c.json({mode:'MOCK',messages:await Promise.all(messages.map(async m=>({...m,payload_cipher:undefined,text:messageText(m,await unseal(c.env.APP_SECRET,m.payload_cipher))})))});});
 app.get('/dev/inbox',async c=>{if(!local(c)) fail(404,'not_found');return c.json({mode:'MOCK — local uniquement',mail:await rows(c.env.DB,'SELECT * FROM mock_mail ORDER BY created_at DESC LIMIT 50')});});
-app.get('/',c=>c.text('SalonOS — interface en cours de construction'));
+app.get('/app-config',c=>c.json({local:local(c),locale:'fr'}));
+app.get('/app.css',c=>{c.header('Content-Type','text/css; charset=utf-8');return c.body(css);});
+app.get('/app.js',c=>{c.header('Content-Type','application/javascript; charset=utf-8');return c.body(javascript);});
+for(const path of ['/','/login','/dashboard','/manual','/manage','/inbox','/privacy','/unsubscribe','/book/:slug'])app.get(path,c=>c.html(html));
 export default {fetch:app.fetch,async scheduled(_event:ScheduledEvent,env:Env,_ctx:ExecutionContext) {await processOutbox(env);}};

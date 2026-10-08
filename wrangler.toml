@@ -1,6 +1,9 @@
 name = "salonos-handoff"
-main = "src/index.ts"
+main = "dist/worker.mjs"
 compatibility_date = "2026-07-30"
+
+[build]
+command = "npm run build"
 
 [triggers]
 crons = ["*/15 * * * *"]
