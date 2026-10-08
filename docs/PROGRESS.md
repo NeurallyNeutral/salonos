@@ -7,7 +7,7 @@ Status at handoff: `SAFE_BOOTSTRAP_ONLY`.
 - [x] M0 foundation: real local workerd/D1, migration/seed runner, build/typecheck and persistent demo launcher (2 tests passed)
 - [x] M1 tenant/authentication core; typecheck and 3 test scenarios passed
 - [x] M2 availability + atomic bookings; 6 scenarios passed including 40 simultaneous contenders
-- [ ] M3 reliable delivery + providers
+- [x] M3 reliable delivery + provider adapters; 9 scenarios passed, live providers BLOCKED
 - [ ] M4 merchant UI and truthful metrics
 - [ ] M5 loyalty + compliant reviews
 - [ ] M6 CI, QA, backup, runbooks and local demo

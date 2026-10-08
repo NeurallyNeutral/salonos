@@ -1,18 +1,17 @@
 import { Hono } from 'hono';
 import { getCookie, setCookie, deleteCookie } from 'hono/cookie';
-import { App, Row, email, token, hash, hmac, equal, now, id, stmt, fail, local, limit } from './core';
+import { App, Row, email, token, hash, hmac, equal, now, id, stmt, fail, limit, seal } from './core';
 
 export const auth = new Hono<App>();
 auth.post('/request', async c => {
   await limit(c, 'login-ip', 10, 600000);
   const address = email((await c.req.json()).email);
   await limit(c, 'login-email:' + await hash(address), 3, 600000);
-  const user = await stmt(c.env.DB, 'SELECT u.id FROM merchant_users u JOIN tenants t ON t.id=u.tenant_id WHERE u.email=? AND u.active=1 AND t.active=1', address).first<Row>();
+  const user = await stmt(c.env.DB, 'SELECT u.id,u.tenant_id FROM merchant_users u JOIN tenants t ON t.id=u.tenant_id WHERE u.email=? AND u.active=1 AND t.active=1', address).first<Row>();
   if (user) {
     const raw = token();
-    await stmt(c.env.DB, 'INSERT INTO magic_links VALUES (?,?,?,NULL)', await hash(raw), user.id, now() + 600000).run();
-    if (local(c)) await stmt(c.env.DB, 'INSERT INTO mock_mail VALUES (?,?,?,?)', id(), address, raw, now()).run();
-    // M3 supplies durable live delivery; fail closed while it is unconfigured.
+    const job=id();
+    await c.env.DB.batch([stmt(c.env.DB, 'INSERT INTO magic_links VALUES (?,?,?,NULL)', await hash(raw), user.id, now() + 600000),stmt(c.env.DB,"INSERT INTO notification_outbox(id,tenant_id,kind,channel,event_key,payload_cipher,due_at,expires_at,created_at) VALUES (?,?,'magic_link','email',?,?,?,?,?)",job,user.tenant_id,job,await seal(c.env.APP_SECRET,{recipient:address,token:raw,login_url:c.env.APP_BASE_URL+'/login#'+raw}),now(),now()+600000,now())]);
   }
   return c.json({ ok: true, message: 'Si ce compte existe, un lien de connexion sera envoyé.' });
 });

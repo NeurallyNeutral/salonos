@@ -1,10 +1,12 @@
 import { Hono } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 import { bodyLimit } from 'hono/body-limit';
-import { App, Env, fail, local, rows } from './core';
+import { App, Env, fail, local, rows, unseal, hmac, equal, stmt, audit } from './core';
 import { auth, merchant } from './auth';
 import './config';
 import { publicApi, manageApi } from './bookings';
+import { webhooks, processOutbox } from './delivery';
+import { messageText } from './providers';
 
 const app = new Hono<App>();
 app.use('*',bodyLimit({maxSize:16384,onError:c=>c.json({error:'body_too_large'},413)}));
@@ -23,6 +25,10 @@ app.get('/health',c=>c.json({ok:true,service:'SalonOS'}));
 app.get('/ready',async c=>{try {await c.env.DB.prepare('SELECT id FROM tenants LIMIT 1').first();return c.json({ok:true,environment:c.env.ENVIRONMENT});}catch{return c.json({ok:false},503);}});
 app.route('/auth',auth);app.route('/merchant',merchant);
 app.route('/public',publicApi);app.route('/manage-api',manageApi);
+app.route('/webhooks',webhooks);
+app.post('/unsubscribe',async c=>{const b=await c.req.json();if(typeof b.customer_id!=='string'||typeof b.signature!=='string'||!equal(b.signature,await hmac(c.env.APP_SECRET,'unsubscribe:'+b.customer_id)))fail(404,'not_found');await stmt(c.env.DB,'UPDATE customers SET suppressed=1 WHERE id=?',b.customer_id).run();return c.json({ok:true});});
+app.post('/dev/process',async c=>{if(!local(c))fail(404,'not_found');return c.json(await processOutbox(c.env));});
+app.get('/dev/messages',async c=>{if(!local(c))fail(404,'not_found');const messages=await rows(c.env.DB,'SELECT d.*,o.kind,o.state FROM mock_deliveries d JOIN notification_outbox o ON o.id=d.outbox_id ORDER BY d.created_at DESC LIMIT 100');return c.json({mode:'MOCK',messages:await Promise.all(messages.map(async m=>({...m,payload_cipher:undefined,text:messageText(m,await unseal(c.env.APP_SECRET,m.payload_cipher))})))});});
 app.get('/dev/inbox',async c=>{if(!local(c)) fail(404,'not_found');return c.json({mode:'MOCK — local uniquement',mail:await rows(c.env.DB,'SELECT * FROM mock_mail ORDER BY created_at DESC LIMIT 50')});});
 app.get('/',c=>c.text('SalonOS — interface en cours de construction'));
-export default {fetch:app.fetch,async scheduled(_event:ScheduledEvent,_env:Env,_ctx:ExecutionContext) {}};
+export default {fetch:app.fetch,async scheduled(_event:ScheduledEvent,env:Env,_ctx:ExecutionContext) {await processOutbox(env);}};

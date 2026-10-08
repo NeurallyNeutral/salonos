@@ -5,6 +5,7 @@ export function client(mf, headers={}) { return async (path, body, method=body==
 };}
 export async function login(mf,db,address='atlas@example.invalid'){
   const api=client(mf);assert.equal((await api('/auth/request',{email:address})).status,200);
+  assert.equal((await api('/dev/process',{})).status,200);
   const {token}=await db.prepare('SELECT token FROM mock_mail WHERE recipient=? ORDER BY created_at DESC LIMIT 1').bind(address).first();
   const result=await api('/auth/consume',{token});assert.equal(result.status,200);
   const cookie=result.headers.get('set-cookie').split(';')[0];const session=await client(mf,{Cookie:cookie})('/merchant/session');
