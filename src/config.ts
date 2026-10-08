@@ -15,7 +15,8 @@ merchant.patch('/settings', async c => {
   for(const [k,v] of Object.entries(b)) {
     if(k==='name') changes[k]=str(v,100);
     else if(k==='timezone') {try{new Intl.DateTimeFormat('fr',{timeZone:str(v)}).format();}catch{fail(400,'invalid_timezone');}changes[k]=v;}
-    else if(['paused','marketing_enabled','reminders_enabled'].includes(k)) changes[k]=flag(v);
+    else if(['paused','marketing_enabled','reminders_enabled','reviews_enabled'].includes(k)) changes[k]=flag(v);
+    else if(k==='rebooking_days') changes[k]=integer(v,0,180);
     else if(k==='cutoff_min') changes[k]=integer(v,0,10080);
     else if(k==='horizon_days') changes[k]=integer(v,1,180);
     else if(k==='loyalty_bps') {if(![0,100,200].includes(v)) fail(400,'invalid_rate');changes[k]=v;}

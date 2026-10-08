@@ -9,7 +9,7 @@ Status at handoff: `SAFE_BOOTSTRAP_ONLY`.
 - [x] M2 availability + atomic bookings; 6 scenarios passed including 40 simultaneous contenders
 - [x] M3 reliable delivery + provider adapters; 9 scenarios passed, live providers BLOCKED
 - [x] M4 merchant UI and truthful metrics; 10 API scenarios + 2 mobile browser scenarios passed
-- [ ] M5 loyalty + compliant reviews
+- [x] M5 loyalty + neutral reviews; 13 API scenarios + 3 mobile E2E scenarios passed
 - [ ] M6 CI, QA, backup, runbooks and local demo
 
 ## Evidence

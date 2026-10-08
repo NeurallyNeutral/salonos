@@ -3,6 +3,7 @@ import { App, Env, Row, Ctx, stmt, rows, str, phone, email, flag, integer, token
 import { merchant } from './auth';
 import { tenantBySlug, offers, verifyOffer, CELL, displayTime, localParts } from './availability';
 import { bookingMessages } from './outbox';
+import { completedMessages } from './retention';
 export const publicApi=new Hono<App>();
 publicApi.get('/:slug',async c=>{const t=await tenantBySlug(c.env,c.req.param('slug'));return c.json({tenant:{name:t.name,slug:t.slug,timezone:t.timezone,local_today:localParts(now(),t.timezone).date,paused:t.paused,logo_url:t.logo_url,loyalty_bps:t.loyalty_bps},services:await rows(c.env.DB,'SELECT id,name,duration_min,buffer_min,price_centimes FROM services WHERE tenant_id=? AND active=1',t.id)});});
 publicApi.get('/:slug/availability',async c=>{await limit(c,'availability',120);const t=await tenantBySlug(c.env,c.req.param('slug'));return c.json({slots:await offers(c.env,t,str(c.req.query('service_id')),str(c.req.query('date')))});});
@@ -54,6 +55,7 @@ async function changeBooking(c:Ctx,b:Row,kind:'cancel'|'reschedule'|'attendance'
   }
   q.push(stmt(db,"UPDATE notification_outbox SET state='suppressed',reason='booking_changed' WHERE tenant_id=? AND booking_id=? AND state IN ('pending','failed_retryable')",b.tenant_id,b.id));
   if(kind!=='attendance'){const customer=(await stmt(db,'SELECT * FROM customers WHERE tenant_id=? AND id=?',b.tenant_id,b.customer_id).first<Row>())!;q.push(...await bookingMessages(c.env,t,next,customer,raw,kind==='cancel'?'cancellation':'reschedule'));}
+  if(kind==='attendance'&&body.status==='completed')q.push(...await completedMessages(c.env,t,b));
   q.push(audit(db,b.tenant_id,isMerchant?c.get('merchant').id:'customer',kind,b.id));
   try{await db.batch(q);}catch(error){if(/UNIQUE|stale_booking|stale_configuration/i.test(String(error)))fail(409,'booking_conflict');throw error;}return c.json(response);
 }

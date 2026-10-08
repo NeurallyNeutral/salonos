@@ -6,7 +6,10 @@ merchant.get('/metrics',async c=>{
  const tid=c.get('merchant').tenant_id,db=c.env.DB;
  const counts=await stmt(db,"SELECT COUNT(*) processed_bookings,COALESCE(SUM(status='completed'),0) completed_visits,COALESCE(SUM(status='no_show'),0) no_shows,COALESCE(SUM(status IN ('completed','no_show')),0) attendance_denominator,COALESCE(SUM(CASE WHEN status!='cancelled' THEN price_centimes ELSE 0 END),0) booked_value_centimes FROM bookings WHERE tenant_id=?",tid).first<Row>();
  const repeats=await stmt(db,"SELECT COUNT(*) n FROM (SELECT customer_id FROM bookings WHERE tenant_id=? AND status='completed' GROUP BY customer_id HAVING COUNT(*)>1)",tid).first<Row>();
- return c.json({...counts,repeat_customers:repeats!.n,deliveries:await rows(db,'SELECT state,COUNT(*) count FROM notification_outbox WHERE tenant_id=? GROUP BY state',tid),processor_verified_value:null,payment_reporting:'not_implemented'});
+ const paid=await stmt(db,'SELECT COALESCE(SUM(amount_centimes),0) paid FROM payment_records WHERE tenant_id=?',tid).first<Row>();
+ const refunds=await stmt(db,'SELECT COALESCE(SUM(cash_centimes),0) refunded FROM refund_records WHERE tenant_id=?',tid).first<Row>();
+ const loyalty=await stmt(db,"SELECT COALESCE(SUM(CASE WHEN kind='earn' THEN amount_centimes ELSE 0 END),0) issued,COALESCE(SUM(CASE WHEN kind='redeem' THEN -amount_centimes ELSE 0 END),0) redeemed FROM loyalty_ledger WHERE tenant_id=?",tid).first<Row>();
+ return c.json({...counts,repeat_customers:repeats!.n,merchant_reported_paid_centimes:paid!.paid,refunded_centimes:refunds!.refunded,merchant_reported_net_centimes:paid!.paid-refunds!.refunded,loyalty_issued_centimes:loyalty!.issued,loyalty_redeemed_centimes:loyalty!.redeemed,deliveries:await rows(db,'SELECT state,COUNT(*) count FROM notification_outbox WHERE tenant_id=? GROUP BY state',tid),processor_verified_value:null,payment_reporting:'merchant_reported'});
 });
 export function csvCell(value:unknown){let text=String(value??'');if(/^[\s]*[=+@-]/.test(text)||/^[\t\r\n]/.test(text))text="'"+text;return '"'+text.replace(/"/g,'""')+'"';}
 merchant.get('/export.csv',async c=>{

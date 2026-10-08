@@ -8,6 +8,7 @@ import { publicApi, manageApi } from './bookings';
 import { webhooks, processOutbox } from './delivery';
 import { messageText } from './providers';
 import './workflows';
+import './loyalty';
 import html from '../web/index.html';
 import css from '../web/app.css';
 import javascript from '../web/app.txt';

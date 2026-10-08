@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { merchant } from './auth';
 import { App, Env, Row, stmt, rows, now, id, unseal, seal, hmac, equal, hash, str, flag, owner, fail, audit, local } from './core';
 import { sendProvider, messageText } from './providers';
+import { expireCredits } from './retention';
 export async function reconcile(env:Env,tenantId:string|null=null) {
   const events=await rows(env.DB,'SELECT * FROM webhook_events WHERE reconciled=0 ORDER BY received_at LIMIT 100');
   for(const e of events){const channel=e.provider==='meta'?'whatsapp':'email';const job=await stmt(env.DB,'SELECT * FROM notification_outbox WHERE channel=? AND provider_id=? AND (? IS NULL OR tenant_id=?)',channel,e.provider_id,tenantId,tenantId).first<Row>();if(!job)continue;
@@ -11,6 +12,7 @@ export async function reconcile(env:Env,tenantId:string|null=null) {
 }
 export async function processOutbox(env:Env,tenantId:string|null=null) {
   const db=env.DB,clock=now();
+  await expireCredits(env,tenantId);
   // An interrupted WhatsApp send may already have reached Meta: quarantine, do not resend.
   await stmt(db,"UPDATE notification_outbox SET state=CASE WHEN channel='whatsapp' THEN 'uncertain' ELSE 'failed_retryable' END,reason='lease_expired' WHERE state='leased' AND lease_until<? AND (? IS NULL OR tenant_id=?)",clock,tenantId,tenantId).run();
   const due=await rows(db,"SELECT id FROM notification_outbox WHERE state IN ('pending','failed_retryable') AND due_at<=? AND (? IS NULL OR tenant_id=?) ORDER BY due_at LIMIT 25",clock,tenantId,tenantId);
