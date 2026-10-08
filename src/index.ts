@@ -4,6 +4,7 @@ import { bodyLimit } from 'hono/body-limit';
 import { App, Env, fail, local, rows } from './core';
 import { auth, merchant } from './auth';
 import './config';
+import { publicApi, manageApi } from './bookings';
 
 const app = new Hono<App>();
 app.use('*',bodyLimit({maxSize:16384,onError:c=>c.json({error:'body_too_large'},413)}));
@@ -21,6 +22,7 @@ app.notFound(c=>c.json({error:'not_found'},404));
 app.get('/health',c=>c.json({ok:true,service:'SalonOS'}));
 app.get('/ready',async c=>{try {await c.env.DB.prepare('SELECT id FROM tenants LIMIT 1').first();return c.json({ok:true,environment:c.env.ENVIRONMENT});}catch{return c.json({ok:false},503);}});
 app.route('/auth',auth);app.route('/merchant',merchant);
+app.route('/public',publicApi);app.route('/manage-api',manageApi);
 app.get('/dev/inbox',async c=>{if(!local(c)) fail(404,'not_found');return c.json({mode:'MOCK — local uniquement',mail:await rows(c.env.DB,'SELECT * FROM mock_mail ORDER BY created_at DESC LIMIT 50')});});
 app.get('/',c=>c.text('SalonOS — interface en cours de construction'));
 export default {fetch:app.fetch,async scheduled(_event:ScheduledEvent,_env:Env,_ctx:ExecutionContext) {}};
