@@ -1,0 +1,17 @@
+{
+  "name": "salonos",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test tests/*.test.mjs",
+    "test:handoff": "node scripts/verify-handoff.mjs",
+    "db:local": "wrangler d1 migrations apply SALONOS_DB --local",
+    "db:remote": "wrangler d1 migrations apply SALONOS_DB --remote",
+    "deploy": "wrangler deploy"
+  },
+  "dependencies": { "hono": "^4.9.0" },
+  "devDependencies": { "typescript": "^5.9.0", "wrangler": "^4.30.0", "@cloudflare/workers-types": "^4.20260901.0" }
+}

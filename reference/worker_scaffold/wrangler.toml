@@ -1,0 +1,16 @@
+name = "salonos-mvp"
+main = "src/index.ts"
+compatibility_date = "2026-09-01"
+
+[triggers]
+crons = ["*/15 * * * *"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "salonos-db"
+database_id = "REPLACE_ME"
+migrations_dir = "migrations"
+
+[vars]
+APP_BASE_URL = "http://localhost:8787"
+EMAIL_FROM = "SalonOS <bookings@example.com>"
