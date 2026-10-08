@@ -1,6 +1,6 @@
 # Progress and evidence
 
-Current state: M0–M6 implementation present; final local/CI gates pending below. Historical status at initial handoff: `SAFE_BOOTSTRAP_ONLY`.
+Current state: `CODE_COMPLETE: YES`, `LIVE_PROVIDER_VERIFIED: NO`, `PILOT_READY: NO`. Historical status at initial handoff: `SAFE_BOOTSTRAP_ONLY`.
 
 2026-10-08 baseline audit: no product behavior implemented in root source; reference backends are unsafe/simulated and excluded from runtime. Project-local Git initialized; private empty GitHub repository verified. Native Git authentication unavailable; connected GitHub API available. See STATUS.md for the work queue and external gates.
 
@@ -10,11 +10,11 @@ Current state: M0–M6 implementation present; final local/CI gates pending belo
 - [x] M3 reliable delivery + provider adapters; 9 scenarios passed, live providers BLOCKED
 - [x] M4 merchant UI and truthful metrics; 10 API scenarios + 2 mobile browser scenarios passed
 - [x] M5 loyalty + neutral reviews; 13 API scenarios + 3 mobile E2E scenarios passed
-- [ ] M6 implementation, adversarial QA, recovery, runbooks and local demo done; final release CI pending
+- [x] M6 implementation, adversarial QA, recovery, runbooks, local demo and full release CI passed
 
 ## Evidence
 
-2026-10-08 M6: final clean dependency install and syntax/type/build gates passed. All 26 Node scenarios and 5 browser scenarios passed with zero failures/skips. Dependency audit reported zero vulnerabilities. Full two-merchant mock scenario, expanded ten-table recovery rehearsal and handoff check passed. Retention/receipt races, identity/consent snapshots, key retirement, pagination and concurrent public/manual/cancel/reschedule operations are covered. Recovery measured 43 ms snapshot and 2083 ms restore/verify on synthetic local data. Final source scan and GitHub CI remain pending before CODE_COMPLETE.
+2026-10-08 M6: clean dependency install, syntax/type/build, source scan and diff checks passed. All 26 Node scenarios and 5 browser scenarios passed with zero failures/skips. Dependency audit reported zero vulnerabilities. Full two-merchant mock scenario, expanded ten-table recovery and handoff checks passed. Retention/receipt races, identity/consent snapshots, key retirement, pagination and concurrent public/manual/cancel/reschedule operations are covered. Recovery measured 43 ms snapshot and 2083 ms restore/verify on synthetic local data. Full GitHub CI run 37779647019 passed on M6 implementation head a91901fd73e80210720314a54cb09f6ed8a17c28; its tree matches local commit 251b7f4. Persistent localhost demo health/readiness and booking page returned 200. See STATUS.md for the evidence link and external gates.
 Milestone commits are on `codex/pilot-implementation` and PR #1. Separate `CODE_COMPLETE` (local gates plus required CI), `LIVE_PROVIDER_VERIFIED` and `PILOT_READY`; exact final evidence is in STATUS.md and QA_MATRIX.md.
 
 ## External blockers

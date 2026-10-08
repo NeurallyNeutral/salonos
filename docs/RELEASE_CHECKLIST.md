@@ -9,7 +9,7 @@ Authoritative evidence: [STATUS.md](STATUS.md). Source-control merge never autho
 - [x] All mobile Chromium E2E and automated accessibility checks pass.
 - [x] Isolated demo and expanded recovery rehearsal pass.
 - [x] Dependency audit and tracked-source safety pass.
-- [ ] Final content verified on GitHub; full CI succeeds for the PR head.
+- [x] Implementation content verified on GitHub; full M6 CI succeeded. Any later PR-head commit must also pass before merge.
 - [x] README, runbook, limitations and owner actions match the implementation.
 
 CODE_COMPLETE requires all code gates, including required GitHub CI.

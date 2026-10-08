@@ -1,12 +1,16 @@
 # SalonOS status
 
-Updated 2026-10-08. CODE_COMPLETE: PENDING FINAL CI. LIVE_PROVIDER_VERIFIED: NO. PILOT_READY: NO.
+Updated 2026-10-08. CODE_COMPLETE: YES. LIVE_PROVIDER_VERIFIED: NO. PILOT_READY: NO.
 
-M0–M6 source is implemented. M6 uncommitted work from the interrupted session was preserved and extended. Local final gates are being recorded below; PR #1 remains unmerged until final source and GitHub CI checks pass. No live deployment or provider onboarding was attempted.
+M0–M6 source is implemented and its local/CI code gates pass. M6 uncommitted work from the interrupted session was preserved and extended. PR #1 contains the final test evidence and remains available for review; no live deployment or provider onboarding was attempted. CODE_COMPLETE describes the implemented local and adapter scope, not live-provider or pilot approval.
 
 ## Current M6 scope and remaining gates
 
-Local release evidence (Node 24.11.1, Windows, 2026-10-08): clean `npm ci` PASS; `npm run check` PASS (format/syntax, typecheck, bundle, 26 Node test scenarios: 26 passed, 0 failed, 0 skipped); `npm run test:e2e` PASS (5/5 Chromium mobile scenarios, including axe and keyboard checks, 34.7 seconds); `npm audit --audit-level=moderate` PASS (0 vulnerabilities); `npm run demo:scenario` PASS; `npm run test:recovery` PASS; `npm run test:handoff` PASS. Recovery: 2 bookings, 8 claims, exact ten-table snapshot equality, foreign keys and payment/refund/120-centime balance; local backup 43 ms, restore/verification 2083 ms. These timings are not a production SLA. Screenshot review found no clipped controls at 360px. Final tracked-source scan and GitHub head CI are the remaining release checks at this commit.
+Local release evidence (Node 24.11.1, Windows, 2026-10-08): clean `npm ci` PASS; `npm run check` PASS (format/syntax, typecheck, bundle, 26 Node test scenarios: 26 passed, 0 failed, 0 skipped); `npm run test:e2e` PASS (5/5 Chromium mobile scenarios, including axe and keyboard checks, 34.7 seconds); `npm audit --audit-level=moderate` PASS (0 vulnerabilities); `npm run demo:scenario` PASS; `npm run test:recovery` PASS; `npm run test:handoff` PASS; `npm run test:safety` and staged diff check PASS. Recovery: 2 bookings, 8 claims, exact ten-table snapshot equality, foreign keys and payment/refund/120-centime balance; local backup 43 ms, restore/verification 2083 ms. These timings are not a production SLA. Screenshot review found no clipped controls at 360px.
+
+GitHub implementation evidence: [SalonOS release gates run 37779647019](https://github.com/NeurallyNeutral/salonos/actions/runs/37779647019) completed successfully for M6 head `a91901fd73e80210720314a54cb09f6ed8a17c28`. Every required job step passed: clean install, audit, lint, typecheck, build, Node tests, handoff/source checks, Linux Chromium installation, E2E, demo, recovery and evidence upload. Remote tree `b7d385063c8188e5936611a6711ac63a1db4b3ca` exactly matches local M6 commit `251b7f4`. Subsequent documentation-only commits use the same required workflow; consult [PR #1](https://github.com/NeurallyNeutral/salonos/pull/1) for final-head checks.
+
+Persistent local launch also passed: `npm run demo`, `/health` 200, `/ready` 200 and the public booking page 200. No external infrastructure was touched. The demo retains only synthetic fixtures and uses mock providers.
 
 M6 adds privacy export/anonymization and race-safe retention, operational health, immutable subscription events with disabled/mock billing, restart/recovery fixtures, current/previous key rotation and full re-encryption, stable unsubscribe links, receipt-race protection, consent email snapshots, large exports/pagination, local provisioning, source checks, browser accessibility and a complete runbook.
 
