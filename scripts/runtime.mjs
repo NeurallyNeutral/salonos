@@ -21,6 +21,7 @@ export async function runtime({
     log: new Log(LogLevel.ERROR),
     d1Databases: ['DB'],
     r2Buckets: ['MEDIA'],
+    r2Persist: persist ? persist + '/media' : false,
     d1Persist: persist,
     bindings: {
       ENVIRONMENT: environment,

@@ -54,6 +54,10 @@ export async function launchStart(path, dependencies) {
     await connectionsPage();
     return true;
   }
+  if (path === '/account') {
+    await accountPage();
+    return true;
+  }
   if (path === '/signup') {
     await signupPage();
     return true;
@@ -77,14 +81,14 @@ function branded(data, preview = false) {
   const t = data.tenant;
   main.dataset.palette = t.palette;
   main.dataset.template = t.template;
-  return `<section class="store-hero"><p class="eyebrow">${t.is_demo ? 'DÉMONSTRATION FICTIVE · ' : ''}${esc(t.locality || 'Un commerce près de vous')}${preview ? ' · BROUILLON NON PUBLIÉ' : ''}</p><h1>${esc(t.name)}</h1><p class="store-headline">${esc(t.headline || 'Une sélection pensée pour vous.')}</p><p>${esc(t.description)}</p><div class="row">${data.whatsapp_url && !preview ? `<a class="button secondary" href="${esc(data.whatsapp_url)}" rel="noreferrer">Contacter sur WhatsApp</a>` : ''}${t.business_mode === 'appointments' && !preview ? `<a class="button" href="/book/${esc(t.slug)}?source=instagram">Réserver un rendez-vous</a>` : ''}</div><p class="muted">Contact à votre initiative. Rappels automatiques désactivés sans connexion officielle.</p></section>`;
+  return `<section class="store-hero"><p class="eyebrow">${t.is_demo ? 'DÉMONSTRATION FICTIVE · ' : ''}${esc(t.locality || 'Un commerce près de vous')}${preview ? ' · BROUILLON NON PUBLIÉ' : ''}</p>${t.logo_url && !preview ? `<img class="merchant-logo" src="${esc(t.logo_url)}" alt="Logo de ${esc(t.name)}">` : ''}<h1>${esc(t.name)}</h1><p class="store-headline">${esc(t.headline || 'Une sélection pensée pour vous.')}</p><p>${esc(t.description)}</p><div class="row">${data.whatsapp_url && !preview ? `<a class="button secondary" href="${esc(data.whatsapp_url)}" rel="noreferrer">Contacter sur WhatsApp</a>` : ''}${t.business_mode === 'appointments' && !preview ? `<a class="button" href="/book/${esc(t.slug)}?source=instagram">Réserver un rendez-vous</a>` : ''}</div><p class="muted">Contact à votre initiative. Rappels automatiques désactivés sans connexion officielle.</p></section>`;
 }
 async function shop(slug) {
   const data = await api('/storefront/' + encodeURIComponent(slug)),
     t = data.tenant;
   main.innerHTML =
     branded(data) +
-    `<section aria-label="Notre sélection" class="grid">${data.items.map((i, n) => `<article class="card product"><div class="product-art art-${n % 3}" aria-hidden="true">${esc(i.name.slice(0, 1))}</div><h2>${esc(i.name)}</h2><p>${esc(i.description)}</p><p>${esc(i.variant)}</p><strong>${money(i.price_centimes)}</strong><p>${i.availability === 'available' ? 'Disponible, à confirmer' : i.availability === 'unavailable' ? 'Indisponible' : 'Disponibilité sur demande'}</p>${!t.paused && i.availability !== 'unavailable' ? `<button data-item="${esc(i.id)}">Demander · ${esc(i.name)}</button>` : ''}</article>`).join('')}</section>${t.paused ? '<p role="status">Les demandes sont temporairement suspendues.</p>' : ''}<section id="inquiry-form"></section><article class="card"><h2>Informations pratiques</h2><p>${esc(t.policy_text || 'Votre demande ne vaut ni commande confirmée ni paiement. Le commerce confirme les modalités directement avec vous.')}</p><p>Le crédit fidélité éventuel est financé par le commerce sur un paiement réellement encaissé. Aucun avantage pour un avis.</p></article>`;
+    `${t.business_mode === 'appointments' ? `<section class="grid">${data.services.map((s) => `<article class="card"><h2>${esc(s.name)}</h2><p>${s.duration_min} minutes · ${money(s.price_centimes)}</p></article>`).join('')}</section>` : ''}<section aria-label="Notre sélection" class="grid">${data.items.map((i, n) => `<article class="card product">${i.image_url ? `<img class="product-photo" src="${esc(i.image_url)}" alt="${esc(i.name)}" loading="lazy" width="500" height="400">` : `<div class="product-art art-${n % 3}" aria-hidden="true">${esc(i.name.slice(0, 1))}</div>`}<h2>${esc(i.name)}</h2><p>${esc(i.description)}</p><p>${esc(i.variant)}</p><strong>${money(i.price_centimes)}</strong><p>${i.availability === 'available' ? 'Disponible, à confirmer' : i.availability === 'unavailable' ? 'Indisponible' : 'Disponibilité sur demande'}</p>${!t.paused && i.availability !== 'unavailable' ? `<button data-item="${esc(i.id)}">Demander · ${esc(i.name)}</button>` : ''}</article>`).join('')}</section>${t.paused ? '<p role="status">Les demandes sont temporairement suspendues.</p>' : ''}<section id="inquiry-form"></section><article class="card"><h2>Informations pratiques</h2><p>${esc(t.policy_text || 'Votre demande ne vaut ni commande confirmée ni paiement. Le commerce confirme les modalités directement avec vous.')}</p><p>Le crédit fidélité éventuel est financé par le commerce sur un paiement réellement encaissé. Aucun avantage pour un avis.</p></article>`;
   main.querySelectorAll('[data-item]').forEach(
     (el) =>
       (el.onclick = () => {
@@ -162,9 +166,9 @@ async function setup() {
       .join(
         '',
       )}</select></label>${field('Votre signature', 'headline', 'text', t.headline, 'maxlength="150"')}${field('Description du commerce', 'description', 'text', t.description, 'maxlength="600"')}${field('Téléphone professionnel WhatsApp', 'contact_phone', 'tel', t.contact_phone, 'required')}${field('Ville ou quartier', 'locality', 'text', t.locality)}${field('Conditions et contact confidentialité', 'policy_text', 'text', t.policy_text || 'Contactez-nous pour la disponibilité, les annulations et vos données. Aucun paiement en ligne.', 'required maxlength="1000"')}${button('Enregistrer mon identité')}</form>
-    <section id="offering" class="card stack"><h2>2. Ajoutez votre première offre</h2><p>${t.business_mode === 'appointments' ? config.services.filter((s) => s.active).length + ' prestation(s)' : 'Catalogue : ' + data.items.length + ' article(s)'}</p><form id="offering-add" class="stack">${field(t.business_mode === 'appointments' ? 'Nom de la prestation' : 'Nom de l’article', 'name', 'text', '', 'required maxlength="100"')}${field('Prix en centimes (12000 = 120 MAD)', 'price_centimes', 'number', 12000, 'min="0" max="10000000" required')}${t.business_mode === 'appointments' ? field('Durée en minutes', 'duration_min', 'number', 30, 'min="5" max="240" step="5" required') + field('Début de journée (heure locale)', 'opening', 'time', '09:00', 'required step="300"') + field('Fin de journée (heure locale)', 'closing', 'time', '18:00', 'required step="300"') : '<p>La disponibilité sera confirmée par le commerce. Aucun stock synchronisé.</p>'}${button('Ajouter mon offre')}</form><p>Rendez-vous : les horaires ci-dessus s’appliquent chaque jour à la première équipe. Les jours de fermeture, équipes et pauses se règlent dans l’espace professionnel.</p></section>
+    <section id="offering" class="card stack"><h2>2. Ajoutez votre première offre</h2><p>${t.business_mode === 'appointments' ? config.services.filter((s) => s.active).length + ' prestation(s)' : 'Catalogue : ' + data.items.length + ' article(s)'}</p><form id="offering-add" class="stack">${field(t.business_mode === 'appointments' ? 'Nom de la prestation' : 'Nom de l’article', 'name', 'text', '', 'required maxlength="100"')}${field('Prix (MAD)', 'price', 'number', 120, 'min="0" max="100000" step="0.01" required')}${t.business_mode === 'appointments' ? field('Durée en minutes', 'duration_min', 'number', 30, 'min="5" max="240" step="5" required') + field('Début de journée (heure locale)', 'opening', 'time', '09:00', 'required step="300"') + field('Fin de journée (heure locale)', 'closing', 'time', '18:00', 'required step="300"') : '<p>La disponibilité sera confirmée par le commerce. Aucun stock synchronisé.</p>'}${button('Ajouter mon offre')}</form><p>Rendez-vous : les horaires ci-dessus s’appliquent chaque jour à la première équipe. Les jours de fermeture, équipes et pauses se règlent dans l’espace professionnel.</p></section>
     <section id="publication" class="card stack"><h2>3. Vérifiez puis publiez</h2><div id="draft-preview">${branded(data, true)}</div><form id="publish-form" class="stack"><label class="check"><input type="checkbox" name="ownership" required> Je représente ce commerce et j’ai les droits sur son contenu.</label><label class="check"><input type="checkbox" name="policies" required> J’ai vérifié les prix, horaires et conditions publiques.</label>${button('Publier ma vitrine')}</form><div id="publish-result" role="status"></div><div class="row"><button id="unpublish" class="secondary">Dépublier</button><button id="pause" class="secondary">${t.paused ? 'Reprendre les demandes' : 'Mettre en pause'}</button></div></section>
-    <form id="asset-form" class="card stack"><h2>Logo facultatif</h2><p>PNG, JPEG ou WebP, 256 Ko maximum. Dix images par commerce. Vous devez détenir les droits.</p><label>Votre logo<input name="image" type="file" accept="image/png,image/jpeg,image/webp" required></label><label class="check"><input type="checkbox" name="rights" required> Je possède les droits sur cette image.</label>${button('Importer mon logo')}</form>
+    <form id="asset-form" class="card stack"><h2>Logo facultatif</h2><p>PNG, JPEG ou WebP, 256 Ko maximum. Dix images par commerce. Vous devez détenir les droits.</p><label>Utilisation<select name="purpose"><option value="logo">Logo du commerce</option>${data.items.map((i) => `<option value="${esc(i.id)}">Photo : ${esc(i.name)}</option>`).join('')}</select></label><label>Votre logo ou photo<input name="image" type="file" accept="image/png,image/jpeg,image/webp" required></label><label class="check"><input type="checkbox" name="rights" required> Je possède les droits sur cette image.</label>${button('Importer mon logo')}</form>
     <form id="share-preview" class="card stack"><h2>Aperçu à partager</h2><p>Lien privé valable 24 heures, sans coordonnées clients ni formulaire actif.</p><label class="check"><input type="checkbox" name="authorized" required> Le commerce autorise ce contenu et cet aperçu.</label>${button('Créer un aperçu autorisé')}<div id="share-result"></div></form>
     <a href="/dashboard">Retour à mon activité</a></section>`;
   onform('#identity', async (d) => {
@@ -178,7 +182,7 @@ async function setup() {
       '/merchant/launch/offer',
       {
         name: d.get('name'),
-        price_centimes: Number(d.get('price_centimes')),
+        price_centimes: cents(d.get('price')),
         duration_min: Number(d.get('duration_min')),
         start_min: d.get('opening') ? minutes(d.get('opening')) : 0,
         end_min: d.get('closing') ? minutes(d.get('closing')) : 0,
@@ -229,7 +233,17 @@ async function setup() {
     });
     let text = '';
     for (const byte of bytes) text += String.fromCharCode(byte);
-    await api('/merchant/assets/upload', { ticket, data: btoa(text) });
+    const uploaded = await api('/merchant/assets/upload', {
+      ticket,
+      data: btoa(text),
+      use_as_logo: d.get('purpose') === 'logo',
+    });
+    if (d.get('purpose') !== 'logo')
+      await api(
+        '/merchant/catalog/' + d.get('purpose') + '/image',
+        { asset_id: uploaded.id },
+        'PUT',
+      );
     document.querySelector('#notice').textContent = 'Logo enregistré.';
   });
   onform('#share-preview', async (d) => {
@@ -248,9 +262,29 @@ async function retail() {
       '<h1>Votre Launch Kit</h1><a class="button" href="/dashboard">Ouvrir votre agenda</a>';
     return;
   }
-  const { inquiries } = await api('/merchant/inquiries'),
-    { items } = await api('/merchant/catalog');
-  main.innerHTML = `<p class="eyebrow">ESPACE PROFESSIONNEL · ${data.tenant.is_demo ? 'DONNÉES SYNTHÉTIQUES' : 'CATALOGUE'}</p><h1>${esc(data.tenant.name)}</h1><p>Les demandes ne sont pas des ventes. Les montants restent déclarés par le commerce.</p><a class="button secondary" href="/shop/${esc(data.tenant.slug)}">Voir ma vitrine</a><section class="stack"><h2>Demandes reçues</h2>${inquiries.length ? inquiries.map((i) => `<article class="card"><h3>${esc(i.item_name)} · ${esc(i.name)}</h3><p>${esc(i.phone)} · ${esc(i.variant)} · ${i.quantity} article(s)</p><p>${esc(i.note)}</p><p>Source : ${esc(i.source)} · État : ${esc(i.status)}</p>${i.status !== 'fulfilled' ? `<form data-inquiry="${esc(i.id)}"><label>État de la demande<select name="status"><option value="contacted">Contact pris</option><option value="fulfilled">Remise effectuée</option><option value="cancelled">Annulée</option></select></label>${button('Enregistrer l’état')}</form>` : ''}</article>`).join('') : '<p>Aucune demande pour le moment.</p>'}</section><section><h2>Votre catalogue</h2>${items.map((i) => `<article class="card"><h3>${esc(i.name)}</h3><p>${money(i.price_centimes)} · ${esc(i.availability)}</p></article>`).join('')}<form id="item-add" class="card stack"><h3>Ajouter un article</h3>${field('Nom de l’article', 'name', 'text', '', 'required')}${field('Description', 'description')}${field('Variante', 'variant')}${field('Prix en centimes', 'price_centimes', 'number', 12000, 'min="0" max="10000000" required')}${button('Ajouter au catalogue')}</form></section>`;
+  const offset = Math.max(0, Number(new URLSearchParams(location.search).get('offset')) || 0);
+  const inquiryPage = await api('/merchant/inquiries?offset=' + offset),
+    inquiries = inquiryPage.inquiries;
+  const { items } = await api('/merchant/catalog');
+  main.innerHTML = `<p class="eyebrow">ESPACE PROFESSIONNEL · ${data.tenant.is_demo ? 'DONNÉES SYNTHÉTIQUES' : 'CATALOGUE'}</p><h1>${esc(data.tenant.name)}</h1><p>Les demandes ne sont pas des ventes. Les montants restent déclarés par le commerce.</p><a class="button secondary" href="/shop/${esc(data.tenant.slug)}">Voir ma vitrine</a><section class="stack"><h2>Demandes reçues</h2>${inquiries.length ? inquiries.map((i) => `<article class="card"><h3>${esc(i.item_name)} · ${esc(i.name)}</h3><p>${esc(i.phone)} · ${esc(i.variant)} · ${i.quantity} article(s)</p><p>${esc(i.note)}</p><p>Source : ${esc(i.source)} · État : ${esc({ new: 'Nouvelle', contacted: 'Contact pris', fulfilled: 'Remise effectuée', cancelled: 'Annulée' }[i.status])}</p>${i.status !== 'fulfilled' ? `<form data-inquiry="${esc(i.id)}"><label>État de la demande<select name="status"><option value="contacted">Contact pris</option><option value="fulfilled">Remise effectuée</option><option value="cancelled">Annulée</option></select></label>${button('Enregistrer l’état')}</form>` : ''}</article>`).join('') : '<p>Aucune demande pour le moment.</p>'}</section><section><h2>Votre catalogue</h2>${items
+    .map(
+      (i) =>
+        `<form id="edit-${esc(i.id)}" class="card stack"><h3>${esc(i.name)}</h3>${field('Nom de l’article', 'name', 'text', i.name, 'required')}${field('Description', 'description', 'text', i.description)}${field('Variante', 'variant', 'text', i.variant)}${field('Prix (MAD)', 'price', 'number', (i.price_centimes / 100).toFixed(2), 'min="0" step="0.01" required')}<label>Disponibilité<select name="availability">${[
+          ['ask', 'Sur demande'],
+          ['available', 'Disponible à confirmer'],
+          ['unavailable', 'Indisponible'],
+        ]
+          .map(
+            ([v, l]) =>
+              `<option value="${v}" ${i.availability === v ? 'selected' : ''}>${l}</option>`,
+          )
+          .join(
+            '',
+          )}</select></label><label class="check"><input name="active" type="checkbox" ${i.active ? 'checked' : ''}> Article visible</label>${button('Enregistrer cet article')}</form>`,
+    )
+    .join(
+      '',
+    )}<form id="item-add" class="card stack"><h3>Ajouter un article</h3>${field('Nom de l’article', 'name', 'text', '', 'required')}${field('Description', 'description')}${field('Variante', 'variant')}${field('Prix (MAD)', 'price', 'number', 120, 'min="0" max="100000" step="0.01" required')}${button('Ajouter au catalogue')}</form></section>`;
   main.querySelectorAll('[data-inquiry]').forEach((form) =>
     onform('[data-inquiry="' + form.dataset.inquiry + '"]', async (d) => {
       await api(
@@ -261,10 +295,26 @@ async function retail() {
       await retail();
     }),
   );
+  for (const item of items)
+    onform('#edit-' + item.id, async (d) => {
+      await api(
+        '/merchant/catalog/' + item.id,
+        {
+          name: d.get('name'),
+          description: d.get('description'),
+          variant: d.get('variant'),
+          price_centimes: cents(d.get('price')),
+          availability: d.get('availability'),
+          active: d.has('active'),
+        },
+        'PATCH',
+      );
+      await retail();
+    });
   onform('#item-add', async (d) => {
     await api('/merchant/catalog', {
       ...Object.fromEntries(d),
-      price_centimes: Number(d.get('price_centimes')),
+      price_centimes: cents(d.get('price')),
     });
     await retail();
   });
@@ -273,6 +323,10 @@ async function retail() {
     '<nav class="tabs"><a href="/setup">Personnaliser ma vitrine</a><a href="/retention">Fidélité & avis</a><a href="/insights">Mes indicateurs</a><a href="/connections">Connexions facultatives</a><a href="/account">Mes données & compte</a></nav><section id="commerce-money"><h2>Remises et encaissements</h2></section>',
   );
   const moneyTarget = main.querySelector('#commerce-money');
+  main.insertAdjacentHTML(
+    'beforeend',
+    `<nav aria-label="Pages de demandes">${offset > 0 ? `<a href="/launch?offset=${Math.max(0, offset - 100)}">Demandes plus récentes</a>` : ''}${inquiryPage.next_offset !== null ? `<a href="/launch?offset=${inquiryPage.next_offset}">Demandes précédentes</a>` : ''}</nav>`,
+  );
   for (const inquiry of inquiries.filter((i) => i.status === 'fulfilled')) {
     const { payments } = await api('/merchant/inquiries/' + inquiry.id + '/payments'),
       { eligible, text } = await api('/merchant/inquiries/' + inquiry.id + '/review-prompt'),
@@ -373,5 +427,39 @@ async function connectionsPage() {
       } catch (e) {
         document.querySelector('#notice').textContent = e.message;
       }
+    };
+}
+async function accountPage() {
+  await session();
+  const { inquiries } = await api('/merchant/inquiries');
+  main.innerHTML = `<section class="narrow"><h1>Vos données et votre compte</h1><article class="card"><h2>Export du commerce</h2><p>Vos prestations, demandes, clients et écritures comptables. Aucun mot de passe ni jeton fournisseur dans cet export.</p><a class="button secondary" href="/merchant/account/export">Télécharger mes données</a></article><section class="card"><h2>Droits des clients</h2>${inquiries.map((i) => `<div class="divider"><p>${esc(i.name)}</p><a href="/merchant/customers/${esc(i.customer_id)}/export">Exporter ce dossier</a><button class="secondary" data-erase="${esc(i.customer_id)}">Anonymiser ce client</button></div>`).join('') || '<p>Les dossiers clients des rendez-vous sont accessibles depuis l’espace professionnel.</p>'}</section><form id="revoke-previews" class="card"><h2>Aperçus privés</h2>${button('Révoquer tous mes aperçus')}</form><form id="delete-account" class="card stack"><h2>Fermer ce commerce</h2><p>La vitrine sera dépubliée et vos sessions révoquées immédiatement. L’anonymisation se poursuit automatiquement ; les écritures comptables anonymisées restent conservées selon les obligations applicables.</p><label class="check"><input type="checkbox" name="confirmed" required> Je confirme la fermeture et l’anonymisation de mon commerce.</label>${button('Fermer mon commerce')}</form><a href="/dashboard">Retour à mon activité</a></section>`;
+  onform('#revoke-previews', async () => {
+    await api('/merchant/launch/previews/revoke', {});
+    document.querySelector('#notice').textContent = 'Tous les aperçus sont révoqués.';
+  });
+  onform('#delete-account', async (d) => {
+    const r = await api('/merchant/account/delete', { confirm_delete: d.has('confirmed') });
+    main.innerHTML =
+      '<h1>Votre commerce est fermé.</h1><p>' +
+      esc(
+        r.state === 'completed'
+          ? 'Anonymisation terminée.'
+          : 'Anonymisation en cours, reprise automatique programmée.',
+      ) +
+      '</p><a href="/">Accueil</a>';
+  });
+  for (const el of main.querySelectorAll('[data-erase]'))
+    el.onclick = () => {
+      el.insertAdjacentHTML(
+        'afterend',
+        '<form id="erase-confirm" class="stack"><label class="check"><input name="confirmed" type="checkbox" required> Je confirme l’anonymisation et l’annulation des demandes en cours.</label>' +
+          button('Confirmer l’anonymisation') +
+          '</form>',
+      );
+      el.disabled = true;
+      onform('#erase-confirm', async () => {
+        await api('/merchant/customers/' + el.dataset.erase + '/erase', {});
+        await accountPage();
+      });
     };
 }

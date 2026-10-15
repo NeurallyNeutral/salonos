@@ -44,7 +44,35 @@ merchant.get('/customers/:id/export', async (c) => {
     key,
   );
   c.header('Content-Disposition', 'attachment; filename="dossier-client.json"');
-  return c.json({ customer, bookings, payments, refunds, ledger, notifications });
+  const inquiries = await rows(
+    db,
+    'SELECT id,item_id,variant,quantity,price_centimes,note,source,status,consent_contact,consent_marketing,created_at,fulfilled_at FROM inquiries WHERE tenant_id=? AND customer_id=?',
+    m.tenant_id,
+    key,
+  );
+  const commerce_payments = await rows(
+    db,
+    'SELECT id,inquiry_id,amount_centimes,redeemed_centimes,verification,created_at FROM commerce_payments WHERE tenant_id=? AND customer_id=?',
+    m.tenant_id,
+    key,
+  );
+  const commerce_refunds = await rows(
+    db,
+    'SELECT r.id,r.payment_id,r.cash_centimes,r.credit_centimes,r.reason,r.created_at FROM commerce_refunds r JOIN commerce_payments p ON p.tenant_id=r.tenant_id AND p.id=r.payment_id WHERE p.tenant_id=? AND p.customer_id=?',
+    m.tenant_id,
+    key,
+  );
+  return c.json({
+    customer,
+    bookings,
+    payments,
+    refunds,
+    ledger,
+    notifications,
+    inquiries,
+    commerce_payments,
+    commerce_refunds,
+  });
 });
 merchant.post('/customers/:id/erase', async (c) => {
   const m = owner(c),

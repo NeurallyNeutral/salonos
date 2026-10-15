@@ -62,7 +62,7 @@ export async function storeData(db: D1Database, t: Row) {
     whatsapp_url: t.contact_phone ? 'https://wa.me/' + t.contact_phone.slice(1) : null,
     items: await rows(
       db,
-      'SELECT id,name,description,variant,price_centimes,availability FROM catalog_items WHERE tenant_id=? AND active=1',
+      "SELECT i.id,i.name,i.description,i.variant,i.price_centimes,i.availability,CASE WHEN a.asset_id IS NOT NULL THEN '/media/'||a.asset_id ELSE NULL END image_url FROM catalog_items i LEFT JOIN catalog_item_assets a ON a.tenant_id=i.tenant_id AND a.item_id=i.id WHERE i.tenant_id=? AND i.active=1",
       t.id,
     ),
     services: await rows(
@@ -71,7 +71,7 @@ export async function storeData(db: D1Database, t: Row) {
       t.id,
     ),
     automation: {
-      whatsapp: 'DISCONNECTED',
+      whatsapp: 'not_evaluated',
       note: 'Le lien WhatsApp ouvre une conversation à votre initiative. Il ne programme aucun rappel.',
     },
   };
@@ -94,6 +94,26 @@ merchant.get('/catalog', async (c) =>
     ),
   }),
 );
+merchant.put('/catalog/:id/image', async (c) => {
+  const m = owner(c),
+    b = await c.req.json<Row>();
+  try {
+    await c.env.DB.batch([
+      stmt(
+        c.env.DB,
+        'INSERT INTO catalog_item_assets VALUES (?,?,?) ON CONFLICT(tenant_id,item_id) DO UPDATE SET asset_id=excluded.asset_id',
+        m.tenant_id,
+        c.req.param('id'),
+        str(b.asset_id),
+      ),
+      audit(c.env.DB, m.tenant_id, m.id, 'catalog_image_changed', c.req.param('id')),
+    ]);
+  } catch (error) {
+    if (/constraint/i.test(String(error))) fail(400, 'invalid_asset');
+    throw error;
+  }
+  return c.json({ ok: true });
+});
 merchant.post('/catalog', async (c) => {
   const m = owner(c),
     b = await c.req.json<Row>(),
@@ -234,15 +254,19 @@ storefront.post('/:slug/inquiries', async (c) => {
   }
   return c.json({ id: inquiry, status: 'received', payment_status: 'not_paid' }, 201);
 });
-merchant.get('/inquiries', async (c) =>
-  c.json({
-    inquiries: await rows(
-      c.env.DB,
-      'SELECT i.*,c.name,c.phone,c.email,p.name item_name FROM inquiries i JOIN customers c ON c.tenant_id=i.tenant_id AND c.id=i.customer_id JOIN catalog_items p ON p.tenant_id=i.tenant_id AND p.id=i.item_id WHERE i.tenant_id=? ORDER BY i.created_at DESC LIMIT 100',
-      c.get('merchant').tenant_id,
-    ),
-  }),
-);
+merchant.get('/inquiries', async (c) => {
+  const offset = integer(Number(c.req.query('offset') ?? 0), 0, 10000000);
+  const inquiries = await rows(
+    c.env.DB,
+    'SELECT i.*,c.name,c.phone,c.email,p.name item_name FROM inquiries i JOIN customers c ON c.tenant_id=i.tenant_id AND c.id=i.customer_id JOIN catalog_items p ON p.tenant_id=i.tenant_id AND p.id=i.item_id WHERE i.tenant_id=? ORDER BY i.created_at DESC,i.id DESC LIMIT 101 OFFSET ?',
+    c.get('merchant').tenant_id,
+    offset,
+  );
+  return c.json({
+    inquiries: inquiries.slice(0, 100),
+    next_offset: inquiries.length > 100 ? offset + 100 : null,
+  });
+});
 merchant.patch('/inquiries/:id', async (c) => {
   const m = c.get('merchant'),
     b = await c.req.json<Row>(),

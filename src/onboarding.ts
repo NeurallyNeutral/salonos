@@ -88,11 +88,12 @@ signup.post('/consume', async (c) => {
     await c.env.DB.batch([
       stmt(
         c.env.DB,
-        "INSERT INTO tenants(id,slug,name,storefront_status,reminders_enabled,reviews_enabled,onboarding_started_at) VALUES (?,?,?,'draft',0,1,?)",
+        "INSERT INTO tenants(id,slug,name,storefront_status,reminders_enabled,reviews_enabled,onboarding_started_at,is_demo) VALUES (?,?,?,'draft',0,1,?,?)",
         tenant,
         'draft-' + tenant,
         'Mon commerce',
         challenge.created_at,
+        local(c) ? 1 : 0,
       ),
       stmt(c.env.DB, 'INSERT INTO provision_claims VALUES (?,?)', hashed, tenant),
       stmt(
@@ -411,11 +412,12 @@ merchant.post('/launch/offer', async (c) => {
     q = [
       stmt(
         db,
-        'INSERT INTO setup_operations VALUES (?,?,?,?)',
+        'INSERT INTO setup_operations(tenant_id,idempotency_key,request_hash,subject,business_mode) VALUES (?,?,?,?,?)',
         m.tenant_id,
         key,
         requestHash,
         subject,
+        mode,
       ),
     ];
   if (mode === 'catalog_inquiry')

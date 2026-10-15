@@ -1,5 +1,19 @@
 # Release gates
 
+## V2 gates (2026-10-15)
+
+- [x] V2 A–F implemented and tested milestones published on codex/v2-launch-kit.
+- [x] Self-service identity, offering, publication, separate modes and safe previews implemented.
+- [x] V1 booking/auth/delivery/loyalty protections preserved; catalog accounting and tenant privacy covered.
+- [ ] Final G local suite, screenshots, recovery, discovery and performance results recorded.
+- [ ] Final-head GitHub CI green and PR ready for review.
+- [ ] Five independent human onboarding trials and physical-phone short demo validated.
+- [ ] Chosen live providers, privacy, infrastructure, recovery and owner deployment gates approved.
+
+[Owner actions and exact commands](V2_HANDOFF.md). Code completion never implies provider or pilot verification.
+
+## Historical V1 gates
+
 Authoritative evidence: [STATUS.md](STATUS.md). Source-control merge never authorizes deployment.
 
 ## Code gate

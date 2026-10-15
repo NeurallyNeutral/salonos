@@ -1,5 +1,11 @@
 # SalonOS status
 
+V2 update 2026-10-15: LOCAL_IMPLEMENTATION_COMPLETE: gates running; V2_CODE_COMPLETE: NO (final CI pending). LIVE_PROVIDER_VERIFIED: NO. HUMAN_ONBOARDING_VERIFIED: NO. PILOT_READY: NO.
+
+The V2 Launch Kit is implemented in the separate codex/v2-launch-kit branch. See [V2 progress](V2_PROGRESS.md) for current exact evidence and [V2 handoff](V2_HANDOFF.md) for setup, demonstration, limitations and owner actions. V1 functionality and its original tests are retained. The record below describes the prior V1 release and does not certify V2.
+
+## Historical V1 status
+
 Updated 2026-10-08. CODE_COMPLETE: YES. LIVE_PROVIDER_VERIFIED: NO. PILOT_READY: NO.
 
 M0–M6 source is implemented and its local/CI code gates pass. M6 uncommitted work from the interrupted session was preserved and extended. PR #1 contains the final test evidence and remains available for review; no live deployment or provider onboarding was attempted. CODE_COMPLETE describes the implemented local and adapter scope, not live-provider or pilot approval.

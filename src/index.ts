@@ -16,6 +16,7 @@ import { media } from './media';
 import './commerce';
 import './launch-metrics';
 import './connectors';
+import { finishAccountDeletions } from './account';
 import { retentionSweep, cleanupOperationalData } from './privacy';
 import html from '../web/index.html';
 import css from '../web/app.css';
@@ -55,6 +56,8 @@ app.use('*', async (c, next) => {
 app.onError((err, c) => {
   if (err instanceof HTTPException) return c.json({ error: err.message }, err.status);
   if (err instanceof SyntaxError) return c.json({ error: 'invalid_json' }, 400);
+  for (const code of ['plan_quota', 'asset_quota', 'mode_has_activity', 'loyalty_terms_required'])
+    if (String(err).includes(code)) return c.json({ error: code }, 409);
   const requestId = crypto.randomUUID();
   c.header('X-Request-ID', requestId);
   console.error(
@@ -76,6 +79,8 @@ app.get('/ready', async (c) => {
       throw new Error('configuration');
     await c.env.DB.prepare('SELECT id FROM loyalty_ledger LIMIT 1').first();
     await c.env.DB.prepare('SELECT id FROM retention_guards LIMIT 1').first();
+    await c.env.DB.prepare('SELECT id FROM catalog_items LIMIT 1').first();
+    await c.env.DB.prepare('SELECT tenant_id FROM account_deletions LIMIT 1').first();
     return c.json({ ok: true, environment: c.env.ENVIRONMENT });
   } catch {
     return c.json({ ok: false }, 503);
@@ -109,6 +114,7 @@ app.post('/unsubscribe', async (c) => {
 app.post('/dev/process', async (c) => {
   if (!local(c)) fail(404, 'not_found');
   await processSignup(c.env);
+  await finishAccountDeletions(c.env);
   return c.json(await processOutbox(c.env));
 });
 app.get('/dev/messages', async (c) => {
@@ -179,5 +185,6 @@ export default {
     await processSignup(env);
     await retentionSweep(env);
     await cleanupOperationalData(env);
+    await finishAccountDeletions(env);
   },
 };

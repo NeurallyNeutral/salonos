@@ -35,3 +35,27 @@ V2-D implemented: fulfilled catalog receipts/refunds use append-only tables and 
 V2-E implemented: readiness state machine, local-only zero-send fixture checks, tenant revocation, encrypted-token wipe, and real delivered-receipt requirement after connection updates. Instagram stays explicitly deferred; no OpenReply code/runtime imported. Primary sources and unresolved permissions/pricing/coexistence captured in V2_CONNECTORS_ADR. Initial fixture INSERTs required explicit column lists after the additive timestamp (assertions unchanged); one concurrently run diagnostic encountered a local workerd connection error, corrected by normal serial suite execution. Focused existing operations/providers plus connector checks PASS 7/7. Combined V2 E/F full check PASS 33/33 (60.97 s), mobile E2E 8/8 (22.3 s).
 
 V2-F implemented: independent offline SQLite lead pipeline; authorized JSON import, complete-batch validation/transaction, canonical URL deduplication, persistent opt-out suppression, evidence-based scoring with rationale, human-review status and template suggestion. Followers/first-seen never imply founding/sales. Dry run PASS: 12 synthetic candidates, 10 unsuppressed shortlisted, 0 network requests/sends/merchant activations. Discovery-specific test PASS plus combined 33/33 suite. No scheduler or outreach service configured. See V2_DISCOVERY_RUNBOOK.
+
+## V2-G final local evidence (2026-10-15)
+
+Implemented isolated synthetic storefront/merchant examples, complete local signup/demo, product editing/owned photos, safe preview revocation, account export/deletion, catalog-aware retention and customer erasure, signup key rotation, publication/setup race guards, inquiry pagination, French status labels and mobile navigation. Fixed V1 stale dashboard responses by giving each panel a separate DOM target; ported the pre-existing interrupted regression test while preserving the original checkout unchanged. Recovery includes 29 D1 tables and byte-identical owned object storage.
+
+Final local gates on Node 24.11.1 / Windows:
+
+| Gate | Result |
+| --- | --- |
+| npm run check | PASS: syntax/format, typecheck, Worker bundle, 36/36 Node scenarios; 0 failures/skips, 71.11 s |
+| npm run test:e2e | PASS: 10/10 mobile Chromium scenarios, axe/keyboard and cross-browser persistence, 24.0 s |
+| npm run demo:scenario | PASS: existing appointment/payment/refund/neutral-review/outage workflow |
+| npm run test:recovery | PASS: 29-table equality, 2 bookings, 8 claims, both accounting modes, exact owned image bytes; backup 31 ms, restore/verify 1237 ms |
+| npm run demo:v2 | PASS: five automated synthetic merchants publish in both modes and survive restart; automated median 147 ms; HUMAN median UNKNOWN |
+| npm run test:performance | PASS: 20 local requests, p95 10 ms; UI gzip 25048 bytes (<50000), JSON <32000 bytes; not a production SLA |
+| npm run discovery:dry-run | PASS: 12 synthetic candidates, 10 shortlisted, zero network requests/sends/activations |
+| npm audit --audit-level=moderate | PASS: 0 vulnerabilities |
+| npm run test:handoff / test:safety / git diff --check | PASS; source safety repeated after staging |
+
+Reviewed 360px storefront/merchant screenshots: controls readable and no horizontal clipping. This is browser rendering evidence, not physical-phone/human validation. The first expanded E2E run caught an unsynchronized login navigation and an unscoped test selector; waits now observe completed navigation and selectors target the intended inquiry, with all assertions preserved. GitHub run 38786806788 on the earlier F head passed API/security gates but failed the V1 settings test due to the stale-response race; G contains the product fix and a deterministic delayed-response regression. Final-head CI must pass before code completion is marked YES.
+
+Owner dependencies: five independent first-time human onboarding trials and phone/demo timing; global sender/domain for real verification; owner-approved infrastructure/object storage/scheduler/recovery; optional official WhatsApp permissions/templates/costs and signed delivered receipts; privacy/CNDP/loyalty terms. Instagram runtime, catalog automatic marketing, subscription collection, checkout/shipping, scraping/outreach, Arabic translation/RTL QA and live/production testing are not claimed. All external sends, provisioning and deployments remain zero.
+
+Review PR is stacked on codex/pilot-implementation because V1 PR #1 is still open; verified this branch is ahead of V1 with no missing commits. Neither PR #1 nor main is merged/modified. See V2_HANDOFF.md for exact commands and owner checklist. LOCAL_CODE_COMPLETE: YES (implemented mock scope). V2_CODE_COMPLETE: NO until final GitHub gates pass. LIVE_PROVIDER_VERIFIED: NO. HUMAN_ONBOARDING_VERIFIED: NO. PILOT_READY: NO.

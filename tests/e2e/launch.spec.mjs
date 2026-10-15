@@ -12,7 +12,81 @@ async function signin(page, address) {
     .first();
   await card.getByRole('link', { name: 'Se connecter avec ce lien' }).click();
   await page.getByRole('button', { name: 'Confirmer la connexion' }).click();
+  await page.waitForURL('**/launch');
+  await expect(page.getByRole('heading', { name: 'Maison Sable — Démo' })).toBeVisible();
 }
+test('V2-G merchant payment/refund, connectors and safe preview stay truthful on a phone', async ({
+  page,
+}) => {
+  // Create this test's inquiry independently of test ordering.
+  const store = await (await page.request.get('/storefront/maison-sable')).json();
+  const response = await page.request.post('/storefront/maison-sable/inquiries', {
+    headers: {
+      Origin: 'http://localhost:8790',
+      'Idempotency-Key': crypto.randomUUID().replaceAll('-', ''),
+    },
+    data: {
+      item_id: store.items.find((i) => i.id === 'item_sac').id,
+      name: 'Paiement mobile fictif',
+      phone: '+212600000068',
+      consent_contact: true,
+    },
+  });
+  expect(response.status()).toBe(201);
+  await signin(page, 'boutique@example.invalid');
+  await page.goto('/retention');
+  await page.getByLabel('Crédit financé par le commerce').selectOption('200');
+  await page
+    .getByLabel(
+      'Je comprends que mon commerce finance ce crédit et doit informer le client de ses conditions.',
+    )
+    .check();
+  await page.getByLabel('Lien Google pour un avis honnête').fill('https://g.page/fiction/review');
+  await page.getByRole('button', { name: 'Enregistrer la fidélité et les avis' }).click();
+  await expect(page.locator('#notice')).toContainText('enregistrées');
+  await page.goto('/launch');
+  const inquiry = page
+    .locator('article')
+    .filter({ has: page.getByRole('heading', { name: /Paiement mobile fictif/ }) })
+    .first();
+  await inquiry.getByLabel('État de la demande').selectOption('fulfilled');
+  await inquiry.getByRole('button', { name: 'Enregistrer l’état' }).click();
+  const payment = page
+    .locator('#commerce-money article')
+    .filter({ has: page.getByRole('heading', { name: /Paiement mobile fictif/ }) });
+  await payment.getByLabel('Montant effectivement encaissé (MAD)').fill('180');
+  await payment.getByLabel('Je confirme avoir réellement reçu ce paiement.').check();
+  await payment.getByRole('button', { name: 'Enregistrer l’encaissement' }).click();
+  await expect(payment.getByText(/crédit gagné/)).toBeVisible();
+  await payment.getByLabel('Remboursement en espèces (MAD)').fill('90');
+  await payment.getByLabel('Motif', { exact: true }).fill('Retour synthétique');
+  await payment.getByRole('button', { name: 'Déclarer le remboursement' }).click();
+  await expect(payment.getByText(/remboursé : 90/)).toBeVisible();
+  await page.goto('/connections');
+  const whatsapp = page
+    .locator('article')
+    .filter({ has: page.getByRole('heading', { name: 'WhatsApp officiel' }) });
+  await expect(whatsapp).toContainText('DISCONNECTED');
+  await whatsapp.getByRole('button', { name: 'Tester la fixture whatsapp' }).click();
+  await expect(whatsapp).toContainText('TESTING');
+  await expect(whatsapp).toContainText('Aucune preuve de livraison réelle');
+  expect(
+    (await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze())
+      .violations,
+  ).toEqual([]);
+  await page.goto('/setup');
+  await page.getByLabel('Le commerce autorise ce contenu et cet aperçu.').check();
+  await page.getByRole('button', { name: 'Créer un aperçu autorisé' }).click();
+  await page.getByRole('link', { name: 'Ouvrir l’aperçu autorisé' }).click();
+  await expect(page.getByText(/Aucune réservation, demande ou vente possible/)).toBeVisible();
+  await expect(page.getByRole('button', { name: /Demander/ })).toHaveCount(0);
+  await expect(page.getByRole('link', { name: 'Contacter sur WhatsApp' })).toHaveCount(0);
+  await page.goto('/account');
+  expect(
+    (await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze())
+      .violations,
+  ).toEqual([]);
+});
 test('V2-B mobile catalog inquiry survives another browser and remains separate from appointments', async ({
   page,
   browser,
@@ -40,8 +114,12 @@ test('V2-B mobile catalog inquiry survives another browser and remains separate 
   await expect(
     owner.getByRole('heading', { name: 'Sac Alba · Demande mobile fictive' }),
   ).toBeVisible();
-  await owner.getByRole('button', { name: 'Enregistrer l’état' }).click();
-  await expect(owner.getByText('État : contacted', { exact: false })).toBeVisible();
+  await owner
+    .locator('article')
+    .filter({ has: owner.getByRole('heading', { name: 'Sac Alba · Demande mobile fictive' }) })
+    .getByRole('button', { name: 'Enregistrer l’état' })
+    .click();
+  await expect(owner.getByText('État : Contact pris', { exact: false })).toBeVisible();
   expect(
     (await new AxeBuilder({ page: owner }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze())
       .violations,

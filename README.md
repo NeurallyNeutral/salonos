@@ -1,5 +1,10 @@
 # SalonOS
 
+V2 Launch Kit adds verified self-service setup, reusable appointment/catalog storefronts, inquiries, merchant-funded retention, truthful metrics and optional connector readiness. Start with `npm ci` then `npm run demo`; open `http://localhost:8787/shop/atelier-atlas` or `http://localhost:8787/shop/maison-sable`. Create a fictional merchant at `/signup` and verify it in the local `/inbox`. No cloud accounts or Docker required.
+
+See [V2 engineering evidence](docs/V2_PROGRESS.md), [local demo and owner handoff](docs/V2_HANDOFF.md), [optional messaging decision](docs/V2_CONNECTORS_ADR.md) and [separate discovery tool](docs/V2_DISCOVERY_RUNBOOK.md). Live providers, human usability and pilot readiness are not implied by code completion. Deployment is owner-operated only.
+
+
 French appointment and retention application built with Workers, Hono, TypeScript and D1. The local application has real persistence, tenant isolation, atomic booking claims, merchant workflows, payment/loyalty ledgers and durable notifications. No cloud account, Docker or payment method is needed locally.
 
 **Live deployment, real email/WhatsApp delivery and pilot approval remain blocked.** See [release status](docs/STATUS.md) for separate CODE_COMPLETE, LIVE_PROVIDER_VERIFIED and PILOT_READY gates. Fixtures verify adapter behavior, not real delivery. Payments are merchant-reported, never independently processor-verified revenue.

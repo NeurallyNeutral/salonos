@@ -3,6 +3,7 @@ import qrcode from 'qrcode-generator';
 import { merchant } from './auth';
 import { App, Row, owner, stmt, hash, hmac, equal, now, fail, integer, limit, audit } from './core';
 import { choice } from './storefront';
+import { imageDimensions } from './image-validation';
 export const media = new Hono<App>();
 merchant.get('/launch/qr.svg', async (c) => {
   const t = await stmt(
@@ -62,22 +63,9 @@ merchant.post('/assets/upload', async (c) => {
   ).join('');
   if (bytes!.length !== p!.size || digest !== p!.digest) fail(400, 'upload_mismatch');
   const a = bytes!,
-    text = (offset: number, count: number) =>
-      String.fromCharCode(...a.slice(offset, offset + count));
-  const valid =
-    p!.mime === 'image/png'
-      ? a[0] === 137 &&
-        text(1, 7) === 'PNG\r\n\x1a\n' &&
-        text(12, 4) === 'IHDR' &&
-        text(a.length - 8, 4) === 'IEND'
-      : p!.mime === 'image/jpeg'
-        ? a[0] === 255 && a[1] === 216 && a[2] === 255 && a.at(-2) === 255 && a.at(-1) === 217
-        : text(0, 4) === 'RIFF' && text(8, 4) === 'WEBP';
-  if (!valid) fail(400, 'invalid_image');
-  if (p!.mime === 'image/png') {
-    const view = new DataView(a.buffer);
-    if (view.getUint32(16) > 4096 || view.getUint32(20) > 4096) fail(400, 'image_too_large');
-  }
+    dimensions = imageDimensions(a, p!.mime);
+  if (!dimensions) fail(400, 'invalid_image');
+  if (dimensions.some((n) => n < 1 || n > 4096)) fail(400, 'image_too_large');
   const asset = await hash(m.tenant_id + ':' + digest),
     object = m.tenant_id + '/' + digest;
   const total = await stmt(
@@ -105,12 +93,16 @@ merchant.post('/assets/upload', async (c) => {
       digest,
       now(),
     ),
-    stmt(
-      c.env.DB,
-      'UPDATE tenants SET logo_url=?,revision=revision+1 WHERE id=?',
-      '/media/' + asset,
-      m.tenant_id,
-    ),
+    ...(b.use_as_logo === false
+      ? []
+      : [
+          stmt(
+            c.env.DB,
+            'UPDATE tenants SET logo_url=?,revision=revision+1 WHERE id=?',
+            '/media/' + asset,
+            m.tenant_id,
+          ),
+        ]),
     audit(c.env.DB, m.tenant_id, m.id, 'owned_asset_uploaded', asset),
   ]);
   return c.json({ id: asset, url: '/media/' + asset }, 201);

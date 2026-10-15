@@ -488,3 +488,23 @@ label > select {
 label.check > input {
   width: auto;
 }
+.merchant-logo {
+  width: 88px;
+  height: 88px;
+  object-fit: contain;
+  max-width: 100%;
+  border-radius: 16px;
+}
+input[type='file'] {
+  max-width: 100%;
+}
+.card p,
+.card blockquote {
+  overflow-wrap: anywhere;
+}
+.product-photo {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+  border-radius: 12px;
+}
