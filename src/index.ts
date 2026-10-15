@@ -10,15 +10,25 @@ import { messageText } from './providers';
 import './workflows';
 import './loyalty';
 import './operations';
+import { storefront } from './storefront';
+import { signup, preview, processSignup } from './onboarding';
+import { media } from './media';
+import './commerce';
+import './launch-metrics';
+import './connectors';
+import { finishAccountDeletions } from './account';
 import { retentionSweep, cleanupOperationalData } from './privacy';
 import html from '../web/index.html';
 import css from '../web/app.css';
 import javascript from '../web/app.txt';
+import launchJavascript from '../web/launch.txt';
 
 const app = new Hono<App>();
-app.use(
-  '*',
-  bodyLimit({ maxSize: 16384, onError: (c) => c.json({ error: 'body_too_large' }, 413) }),
+app.use('*', async (c, next) =>
+  bodyLimit({
+    maxSize: c.req.path === '/merchant/assets/upload' ? 384000 : 16384,
+    onError: (c) => c.json({ error: 'body_too_large' }, 413),
+  })(c, next),
 );
 app.use('*', async (c, next) => {
   c.header('X-Content-Type-Options', 'nosniff');
@@ -46,6 +56,8 @@ app.use('*', async (c, next) => {
 app.onError((err, c) => {
   if (err instanceof HTTPException) return c.json({ error: err.message }, err.status);
   if (err instanceof SyntaxError) return c.json({ error: 'invalid_json' }, 400);
+  for (const code of ['plan_quota', 'asset_quota', 'mode_has_activity', 'loyalty_terms_required'])
+    if (String(err).includes(code)) return c.json({ error: code }, 409);
   const requestId = crypto.randomUUID();
   c.header('X-Request-ID', requestId);
   console.error(
@@ -67,14 +79,20 @@ app.get('/ready', async (c) => {
       throw new Error('configuration');
     await c.env.DB.prepare('SELECT id FROM loyalty_ledger LIMIT 1').first();
     await c.env.DB.prepare('SELECT id FROM retention_guards LIMIT 1').first();
+    await c.env.DB.prepare('SELECT id FROM catalog_items LIMIT 1').first();
+    await c.env.DB.prepare('SELECT tenant_id FROM account_deletions LIMIT 1').first();
     return c.json({ ok: true, environment: c.env.ENVIRONMENT });
   } catch {
     return c.json({ ok: false }, 503);
   }
 });
 app.route('/auth', auth);
+app.route('/signup-api', signup);
+app.route('/preview-api', preview);
+app.route('/media', media);
 app.route('/merchant', merchant);
 app.route('/public', publicApi);
+app.route('/storefront', storefront);
 app.route('/manage-api', manageApi);
 app.route('/webhooks', webhooks);
 app.post('/unsubscribe', async (c) => {
@@ -95,6 +113,8 @@ app.post('/unsubscribe', async (c) => {
 });
 app.post('/dev/process', async (c) => {
   if (!local(c)) fail(404, 'not_found');
+  await processSignup(c.env);
+  await finishAccountDeletions(c.env);
   return c.json(await processOutbox(c.env));
 });
 app.get('/dev/messages', async (c) => {
@@ -118,7 +138,10 @@ app.get('/dev/inbox', async (c) => {
   if (!local(c)) fail(404, 'not_found');
   return c.json({
     mode: 'MOCK — local uniquement',
-    mail: await rows(c.env.DB, 'SELECT * FROM mock_mail ORDER BY created_at DESC LIMIT 50'),
+    mail: await rows(
+      c.env.DB,
+      "SELECT m.*,CASE WHEN d.id IS NULL THEN 'login' ELSE 'signup' END flow FROM mock_mail m LEFT JOIN signup_deliveries d ON d.id=m.id ORDER BY m.created_at DESC LIMIT 50",
+    ),
   });
 });
 app.get('/app-config', (c) => c.json({ local: local(c), locale: 'fr' }));
@@ -130,6 +153,10 @@ app.get('/app.js', (c) => {
   c.header('Content-Type', 'application/javascript; charset=utf-8');
   return c.body(javascript);
 });
+app.get('/launch.js', (c) => {
+  c.header('Content-Type', 'application/javascript; charset=utf-8');
+  return c.body(launchJavascript);
+});
 for (const path of [
   '/',
   '/login',
@@ -140,13 +167,24 @@ for (const path of [
   '/privacy',
   '/unsubscribe',
   '/book/:slug',
+  '/shop/:slug',
+  '/launch',
+  '/signup',
+  '/preview',
+  '/setup',
+  '/retention',
+  '/insights',
+  '/connections',
+  '/account',
 ])
   app.get(path, (c) => c.html(html));
 export default {
   fetch: app.fetch,
   async scheduled(_event: ScheduledEvent, env: Env, _ctx: ExecutionContext) {
     await processOutbox(env);
+    await processSignup(env);
     await retentionSweep(env);
     await cleanupOperationalData(env);
+    await finishAccountDeletions(env);
   },
 };

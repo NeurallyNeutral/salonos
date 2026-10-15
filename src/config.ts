@@ -55,7 +55,15 @@ merchant.patch('/settings', async (c) => {
         fail(400, 'invalid_timezone');
       }
       changes[k] = v;
-    } else if (['paused', 'marketing_enabled', 'reminders_enabled', 'reviews_enabled'].includes(k))
+    } else if (
+      [
+        'paused',
+        'marketing_enabled',
+        'reminders_enabled',
+        'reviews_enabled',
+        'inquiries_enabled',
+      ].includes(k)
+    )
       changes[k] = flag(v);
     else if (k === 'rebooking_days') changes[k] = integer(v, 0, 180);
     else if (k === 'retention_days') changes[k] = integer(v, 0, 3650);
@@ -69,7 +77,18 @@ merchant.patch('/settings', async (c) => {
     else if (k === 'loyalty_expiry_days') changes[k] = integer(v, 0, 730);
     else if (['logo_url', 'review_url'].includes(k)) {
       if (!v) changes[k] = null;
-      else {
+      else if (k === 'logo_url' && typeof v === 'string' && /^\/media\/[a-f0-9]{64}$/.test(v)) {
+        if (
+          !(await stmt(
+            c.env.DB,
+            'SELECT id FROM merchant_assets WHERE tenant_id=? AND id=?',
+            m.tenant_id,
+            v.slice(7),
+          ).first())
+        )
+          fail(400, 'invalid_asset');
+        changes[k] = v;
+      } else {
         let u: URL;
         try {
           u = new URL(str(v, 500));
@@ -89,6 +108,15 @@ merchant.patch('/settings', async (c) => {
     } else fail(400, 'unknown_setting');
   }
   if (!Object.keys(changes).length) fail(400, 'empty_update');
+  if (changes.loyalty_bps > 0) {
+    const policy = await stmt(
+      c.env.DB,
+      'SELECT onboarding_started_at,loyalty_terms_accepted_at FROM tenants WHERE id=?',
+      m.tenant_id,
+    ).first<Row>();
+    if (policy!.onboarding_started_at && !policy!.loyalty_terms_accepted_at)
+      fail(400, 'loyalty_terms_required');
+  }
   await c.env.DB.batch([
     stmt(
       c.env.DB,

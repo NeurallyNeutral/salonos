@@ -59,6 +59,12 @@ export async function eraseCustomer(
         customerId,
       ),
       audit(db, tenantId, actor, 'customer_anonymized', customerId),
+      stmt(
+        db,
+        "UPDATE inquiries SET note='',variant='',consent_contact=1,consent_marketing=0,status=CASE WHEN status IN ('new','contacted') THEN 'cancelled' ELSE status END WHERE tenant_id=? AND customer_id=?",
+        tenantId,
+        customerId,
+      ),
       ...(retentionOnly ? [stmt(db, 'DELETE FROM retention_guards WHERE id=?', guard)] : []),
     ]);
     return true;
@@ -70,7 +76,7 @@ export async function eraseCustomer(
 export async function retentionSweep(env: Env, tenantId: string | null = null) {
   const customers = await rows(
     env.DB,
-    "SELECT c.id,c.tenant_id FROM customers c JOIN tenants t ON t.id=c.tenant_id WHERE t.retention_days>0 AND c.phone NOT LIKE 'deleted:%' AND (? IS NULL OR t.id=?) AND MAX(c.created_at,COALESCE((SELECT MAX(b.ends_at) FROM bookings b WHERE b.tenant_id=c.tenant_id AND b.customer_id=c.id),0))<?-t.retention_days*86400000 LIMIT 25",
+    "SELECT c.id,c.tenant_id FROM customers c JOIN tenants t ON t.id=c.tenant_id WHERE t.retention_days>0 AND c.phone NOT LIKE 'deleted:%' AND (? IS NULL OR t.id=?) AND MAX(c.created_at,COALESCE((SELECT MAX(b.ends_at) FROM bookings b WHERE b.tenant_id=c.tenant_id AND b.customer_id=c.id),0),COALESCE((SELECT MAX(MAX(i.created_at,COALESCE(i.fulfilled_at,0))) FROM inquiries i WHERE i.tenant_id=c.tenant_id AND i.customer_id=c.id),0))<?-t.retention_days*86400000 LIMIT 25",
     tenantId,
     tenantId,
     now(),
@@ -91,5 +97,17 @@ export async function cleanupOperationalData(env: Env) {
     ),
     stmt(db, 'DELETE FROM mock_mail WHERE created_at<?', now() - 86400000),
     stmt(db, 'DELETE FROM rate_limits WHERE expires_at<?', now()),
+    stmt(db, 'DELETE FROM prospect_previews WHERE expires_at<?', now()),
+    stmt(
+      db,
+      "UPDATE signup_challenges SET email='expired:'||hash WHERE expires_at<?",
+      now() - 86400000,
+    ),
+    stmt(
+      db,
+      'UPDATE signup_deliveries SET payload_cipher=? WHERE challenge_hash IN (SELECT hash FROM signup_challenges WHERE expires_at<?)',
+      await seal(env.APP_SECRET, {}),
+      now() - 86400000,
+    ),
   ]);
 }

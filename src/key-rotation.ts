@@ -9,6 +9,7 @@ export async function reencryptStoredKeys(env: Env) {
     { table: 'mock_deliveries', column: 'payload_cipher' },
     { table: 'bookings', column: 'response_cipher' },
     { table: 'customers', column: 'unsubscribe_cipher' },
+    { table: 'signup_deliveries', column: 'payload_cipher' },
   ]) {
     let cursor = '';
     for (;;) {

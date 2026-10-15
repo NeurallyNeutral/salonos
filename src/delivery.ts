@@ -315,11 +315,12 @@ merchant.put('/providers/:channel', async (c) => {
   await c.env.DB.batch([
     stmt(
       c.env.DB,
-      'INSERT INTO tenant_provider_connections VALUES (?,?,?,?) ON CONFLICT(tenant_id,channel) DO UPDATE SET enabled=excluded.enabled,config_cipher=excluded.config_cipher',
+      'INSERT INTO tenant_provider_connections(tenant_id,channel,enabled,config_cipher,updated_at) VALUES (?,?,?,?,?) ON CONFLICT(tenant_id,channel) DO UPDATE SET enabled=excluded.enabled,config_cipher=excluded.config_cipher,updated_at=excluded.updated_at',
       m.tenant_id,
       channel,
       flag(b.enabled),
       await seal(c.env.PROVIDER_KEK, config),
+      now(),
     ),
     audit(c.env.DB, m.tenant_id, m.id, 'provider_configured', channel),
   ]);

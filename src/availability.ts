@@ -32,13 +32,14 @@ export function localParts(time: number, zone: string) {
 export async function tenantBySlug(env: Env, slug: string): Promise<Row> {
   const t = await stmt(
     env.DB,
-    'SELECT * FROM tenants WHERE slug=? AND active=1',
+    "SELECT * FROM tenants WHERE slug=? AND active=1 AND storefront_status='published' AND business_mode='appointments'",
     slug,
   ).first<Row>();
   if (!t) fail(404, 'not_found');
   return t;
 }
 export async function schedule(env: Env, t: Row, serviceId: string) {
+  if (t.business_mode !== 'appointments') fail(409, 'mode_unavailable');
   const service = await stmt(
     env.DB,
     'SELECT * FROM services WHERE tenant_id=? AND id=? AND active=1',

@@ -1,6 +1,6 @@
 # Progress and evidence
 
-Current state: `CODE_COMPLETE: YES`, `LIVE_PROVIDER_VERIFIED: NO`, `PILOT_READY: NO`. Historical status at initial handoff: `SAFE_BOOTSTRAP_ONLY`.
+V2 current state: `CODE_COMPLETE: YES` (local/mock scope; implementation CI verified); see [V2_PROGRESS](V2_PROGRESS.md). Historical V1: `CODE_COMPLETE: YES`, `LIVE_PROVIDER_VERIFIED: NO`, `PILOT_READY: NO`. Historical status at initial handoff: `SAFE_BOOTSTRAP_ONLY`.
 
 2026-10-08 baseline audit: no product behavior implemented in root source; reference backends are unsafe/simulated and excluded from runtime. Project-local Git initialized; private empty GitHub repository verified. Native Git authentication unavailable; connected GitHub API available. See STATUS.md for the work queue and external gates.
 

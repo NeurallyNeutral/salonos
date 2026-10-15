@@ -2,6 +2,37 @@ import { test, expect } from '@playwright/test';
 import { mkdir } from 'node:fs/promises';
 import AxeBuilder from '@axe-core/playwright';
 const authenticatedCookies = new Map();
+test('a delayed overview response cannot replace settings or discard a merchant draft', async ({
+  page,
+}) => {
+  let release, started;
+  const gate = new Promise((resolve) => {
+      release = resolve;
+    }),
+    requested = new Promise((resolve) => {
+      started = resolve;
+    });
+  await page.route('**/merchant/metrics', async (route) => {
+    const response = await route.fetch();
+    started();
+    await gate;
+    await route.fulfill({ response });
+  });
+  await login(page);
+  await requested;
+  await page.getByRole('button', { name: 'Réglages', exact: true }).click();
+  await page.getByLabel('Nom du commerce', { exact: true }).fill('Brouillon conservé');
+  const received = page.waitForResponse('**/merchant/metrics');
+  release();
+  await (await received).finished();
+  await page.evaluate(
+    () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))),
+  );
+  await expect(page.getByLabel('Nom du commerce', { exact: true })).toHaveValue(
+    'Brouillon conservé',
+  );
+  await expect(page.getByRole('button', { name: 'Enregistrer les réglages' })).toBeVisible();
+});
 
 test('mobile booking and merchant screens pass automated accessibility checks and keyboard navigation', async ({
   page,

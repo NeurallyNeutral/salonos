@@ -114,7 +114,9 @@ test('provider wire contracts use stable keys, approved templates, encryption an
       cipher = await seal(env.PROVIDER_KEK, config);
     assert.notEqual(cipher, await seal(env.PROVIDER_KEK, config));
     await db
-      .prepare("INSERT INTO tenant_provider_connections VALUES ('t_atlas','whatsapp',1,?)")
+      .prepare(
+        "INSERT INTO tenant_provider_connections(tenant_id,channel,enabled,config_cipher) VALUES ('t_atlas','whatsapp',1,?)",
+      )
       .bind(cipher)
       .run();
     env.WHATSAPP_PROVIDER = 'meta';
