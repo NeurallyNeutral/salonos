@@ -22,3 +22,4 @@ New valid qualified candidates/day, qualified conversations, replies, demos, pai
 
 ## Operational design
 Keep discovery data, rate budgets and credentials separate from booking/customer DB wherever possible. A scheduled job can propose a shortlist for review, but must not silently activate merchants, send messages, or charge anything.
+

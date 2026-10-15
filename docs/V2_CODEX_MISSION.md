@@ -23,3 +23,4 @@ V2-G: Demo setup: polished fictional appointments and retail storefront each wit
 
 ## Autonomy
 Continue implementing locally, committing and pushing to codex/v2-launch-kit as milestones pass. Open a reviewable PR when implementation is tested. Use GitHub freely **within NeurallyNeutral/salonos**; do not change repo permissions or privacy. Don't silently merge PR #1 into main, rebase away unfinished work, or weaken tests. If a live/paid/approval operation is needed, mock it and record it as an owner blocker while continuing other work. Owner-alone Vercel policy is absolute.
+

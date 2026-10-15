@@ -22,3 +22,4 @@ Meta Tech Providers: https://whatsappbusiness.com/partners/become-a-partner/
 
 ## Agent research task
 Before coding Instagram integration: document Meta scopes, permissions, Webhooks, app review status, per-account limitations, ownership/conversation routing, pricing, data-retention/erasure and a risk register. Build fake provider adapter and tests first. Do not deploy OpenReply or grant external connection without owner approval.
+

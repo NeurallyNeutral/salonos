@@ -52,3 +52,4 @@ Full e-commerce checkout, shipping integrations, AI receptionist, autoposting, m
 - All events, metrics and revenue distinctions are truthful. Synthetic demo cannot contaminate analytics.
 - Financial ledger exact integer math remains intact and cannot issue credit on incomplete/unpaid transactions.
 - Mobile and accessibility E2E, API/CI, backup/recovery and no-live-provider mocks pass.
+
