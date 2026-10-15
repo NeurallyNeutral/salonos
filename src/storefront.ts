@@ -56,6 +56,7 @@ export async function storeData(db: D1Database, t: Row) {
         'loyalty_bps',
         'review_url',
         'is_demo',
+        'logo_url',
       ].map((k) => [k, t[k]]),
     ),
     whatsapp_url: t.contact_phone ? 'https://wa.me/' + t.contact_phone.slice(1) : null,

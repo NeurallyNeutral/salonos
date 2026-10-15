@@ -17,6 +17,8 @@ export type Env = {
   RESEND_WEBHOOK_SECRET?: string;
   PROVIDER_KEK?: string;
   PROVIDER_KEK_PREVIOUS?: string;
+  SIGNUP_ENABLED?: string;
+  MEDIA?: R2Bucket;
 };
 export type App = { Bindings: Env; Variables: { merchant: Row; rawSession: string } };
 export type Ctx = Context<App>;

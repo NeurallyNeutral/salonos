@@ -11,6 +11,8 @@ import './workflows';
 import './loyalty';
 import './operations';
 import { storefront } from './storefront';
+import { signup, preview, processSignup } from './onboarding';
+import { media } from './media';
 import { retentionSweep, cleanupOperationalData } from './privacy';
 import html from '../web/index.html';
 import css from '../web/app.css';
@@ -18,9 +20,11 @@ import javascript from '../web/app.txt';
 import launchJavascript from '../web/launch.txt';
 
 const app = new Hono<App>();
-app.use(
-  '*',
-  bodyLimit({ maxSize: 16384, onError: (c) => c.json({ error: 'body_too_large' }, 413) }),
+app.use('*', async (c, next) =>
+  bodyLimit({
+    maxSize: c.req.path === '/merchant/assets/upload' ? 384000 : 16384,
+    onError: (c) => c.json({ error: 'body_too_large' }, 413),
+  })(c, next),
 );
 app.use('*', async (c, next) => {
   c.header('X-Content-Type-Options', 'nosniff');
@@ -75,6 +79,9 @@ app.get('/ready', async (c) => {
   }
 });
 app.route('/auth', auth);
+app.route('/signup-api', signup);
+app.route('/preview-api', preview);
+app.route('/media', media);
 app.route('/merchant', merchant);
 app.route('/public', publicApi);
 app.route('/storefront', storefront);
@@ -98,6 +105,7 @@ app.post('/unsubscribe', async (c) => {
 });
 app.post('/dev/process', async (c) => {
   if (!local(c)) fail(404, 'not_found');
+  await processSignup(c.env);
   return c.json(await processOutbox(c.env));
 });
 app.get('/dev/messages', async (c) => {
@@ -121,7 +129,10 @@ app.get('/dev/inbox', async (c) => {
   if (!local(c)) fail(404, 'not_found');
   return c.json({
     mode: 'MOCK — local uniquement',
-    mail: await rows(c.env.DB, 'SELECT * FROM mock_mail ORDER BY created_at DESC LIMIT 50'),
+    mail: await rows(
+      c.env.DB,
+      "SELECT m.*,CASE WHEN d.id IS NULL THEN 'login' ELSE 'signup' END flow FROM mock_mail m LEFT JOIN signup_deliveries d ON d.id=m.id ORDER BY m.created_at DESC LIMIT 50",
+    ),
   });
 });
 app.get('/app-config', (c) => c.json({ local: local(c), locale: 'fr' }));
@@ -151,12 +162,14 @@ for (const path of [
   '/launch',
   '/signup',
   '/preview',
+  '/setup',
 ])
   app.get(path, (c) => c.html(html));
 export default {
   fetch: app.fetch,
   async scheduled(_event: ScheduledEvent, env: Env, _ctx: ExecutionContext) {
     await processOutbox(env);
+    await processSignup(env);
     await retentionSweep(env);
     await cleanupOperationalData(env);
   },

@@ -20,7 +20,8 @@
     "provision:local": "node scripts/provision.mjs --local"
   },
   "dependencies": {
-    "hono": "4.13.13"
+    "hono": "4.13.13",
+    "qrcode-generator": "2.0.4"
   },
   "devDependencies": {
     "@axe-core/playwright": "4.13.0",

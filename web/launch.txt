@@ -32,7 +32,31 @@ export async function launchStart(path, dependencies) {
     return true;
   }
   if (path === '/launch') {
-    await retail();
+    await session();
+    const data = await api('/merchant/launch');
+    if (data.tenant.storefront_status === 'draft') await setup();
+    else await retail();
+    return true;
+  }
+  if (path === '/setup') {
+    await setup();
+    return true;
+  }
+  if (path === '/signup') {
+    await signupPage();
+    return true;
+  }
+  if (path === '/preview') {
+    const data = await api('/preview-api', { token: location.hash.slice(1) });
+    main.innerHTML =
+      branded(data, true) +
+      '<p>Aperçu autorisé · Aucune réservation, demande ou vente possible.</p>' +
+      data.items
+        .map(
+          (i) =>
+            `<article class="card"><h2>${esc(i.name)}</h2><p>${esc(i.description)}</p></article>`,
+        )
+        .join('');
     return true;
   }
   return false;
@@ -41,7 +65,7 @@ function branded(data, preview = false) {
   const t = data.tenant;
   main.dataset.palette = t.palette;
   main.dataset.template = t.template;
-  return `<section class="store-hero"><p class="eyebrow">${t.is_demo ? 'DÉMONSTRATION FICTIVE · ' : ''}${esc(t.locality || 'Un commerce près de vous')}${preview ? ' · BROUILLON NON PUBLIÉ' : ''}</p><h1>${esc(t.name)}</h1><p class="store-headline">${esc(t.headline || 'Une sélection pensée pour vous.')}</p><p>${esc(t.description)}</p><div class="row">${data.whatsapp_url ? `<a class="button secondary" href="${esc(data.whatsapp_url)}" rel="noreferrer">Contacter sur WhatsApp</a>` : ''}${t.business_mode === 'appointments' && !preview ? `<a class="button" href="/book/${esc(t.slug)}?source=instagram">Réserver un rendez-vous</a>` : ''}</div><p class="muted">Contact à votre initiative. Rappels automatiques désactivés sans connexion officielle.</p></section>`;
+  return `<section class="store-hero"><p class="eyebrow">${t.is_demo ? 'DÉMONSTRATION FICTIVE · ' : ''}${esc(t.locality || 'Un commerce près de vous')}${preview ? ' · BROUILLON NON PUBLIÉ' : ''}</p><h1>${esc(t.name)}</h1><p class="store-headline">${esc(t.headline || 'Une sélection pensée pour vous.')}</p><p>${esc(t.description)}</p><div class="row">${data.whatsapp_url && !preview ? `<a class="button secondary" href="${esc(data.whatsapp_url)}" rel="noreferrer">Contacter sur WhatsApp</a>` : ''}${t.business_mode === 'appointments' && !preview ? `<a class="button" href="/book/${esc(t.slug)}?source=instagram">Réserver un rendez-vous</a>` : ''}</div><p class="muted">Contact à votre initiative. Rappels automatiques désactivés sans connexion officielle.</p></section>`;
 }
 async function shop(slug) {
   const data = await api('/storefront/' + encodeURIComponent(slug)),
@@ -79,6 +103,130 @@ async function shop(slug) {
         });
       }),
   );
+}
+async function signupPage() {
+  if (location.hash) {
+    main.innerHTML =
+      '<h1>Vérifier votre adresse</h1><p>Votre commerce sera créé en brouillon après confirmation.</p><form id="verify">' +
+      button('Confirmer mon adresse') +
+      '</form>';
+    onform('#verify', async () => {
+      await api('/signup-api/consume', { token: location.hash.slice(1) });
+      location.replace('/launch');
+    });
+  } else {
+    main.innerHTML =
+      '<section class="narrow"><p class="eyebrow">VOTRE COMMERCE, VOTRE LIEN</p><h1>Prêt à ouvrir votre vitrine ?</h1><p>Réservations ou catalogue : commencez avec une adresse vérifiée. Aucun paiement demandé.</p><form id="signup-form" class="card stack">' +
+      field(
+        'Adresse e-mail professionnelle',
+        'email',
+        'email',
+        '',
+        'required autocomplete="email"',
+      ) +
+      button('Créer mon commerce') +
+      '</form><div id="signup-result" role="status"></div><a href="/login">Déjà inscrit ? Se connecter</a></section>';
+    onform('#signup-form', async (d) => {
+      await api('/signup-api/request', { email: d.get('email') });
+      if (location.hostname === 'localhost') await api('/dev/process', {});
+      main.querySelector('#signup-result').innerHTML =
+        '<p>Consultez votre messagerie pour vérifier votre adresse.</p>' +
+        (location.hostname === 'localhost' ? '<a href="/inbox">Ouvrir la boîte démo</a>' : '');
+    });
+  }
+}
+async function setup() {
+  await session();
+  const data = await api('/merchant/launch'),
+    t = data.tenant,
+    config = await api('/merchant/config');
+  main.innerHTML = `<section class="narrow"><p class="eyebrow">LAUNCH KIT · ${t.storefront_status === 'published' ? 'PUBLIÉ' : 'BROUILLON NON PUBLIÉ'}</p><h1>Votre vitrine, à votre rythme.</h1><p>Les modifications sont conservées dans votre compte. Reprenez après une fermeture ou depuis un autre appareil.</p><nav class="tabs"><a href="#identity">1. Identité</a><a href="#offering">2. Offre</a><a href="#publication">3. Publication</a><a href="/dashboard">Gérer mon activité</a></nav>
+    <form id="identity" class="card stack"><h2>1. Présentez votre commerce</h2>${field('Nom du commerce', 'name', 'text', t.name, 'required maxlength="100"')}${field('Adresse de la vitrine', 'slug', 'text', t.slug.startsWith('draft-') ? '' : t.slug, 'required pattern="[a-z][a-z0-9-]{2,59}"')}<label>Mode du commerce<select name="business_mode"><option value="appointments" ${t.business_mode === 'appointments' ? 'selected' : ''}>Rendez-vous</option><option value="catalog_inquiry" ${t.business_mode === 'catalog_inquiry' ? 'selected' : ''}>Catalogue & demandes</option></select></label><label>Style<select name="template">${['atelier', 'studio', 'boutique'].map((v) => `<option value="${v}" ${t.template === v ? 'selected' : ''}>${v}</option>`).join('')}</select></label><label>Palette<select name="palette">${[
+      ['forest', 'Forêt'],
+      ['clay', 'Argile'],
+      ['ink', 'Encre'],
+    ]
+      .map(([v, l]) => `<option value="${v}" ${t.palette === v ? 'selected' : ''}>${l}</option>`)
+      .join(
+        '',
+      )}</select></label>${field('Votre signature', 'headline', 'text', t.headline, 'maxlength="150"')}${field('Description du commerce', 'description', 'text', t.description, 'maxlength="600"')}${field('Téléphone professionnel WhatsApp', 'contact_phone', 'tel', t.contact_phone, 'required')}${field('Ville ou quartier', 'locality', 'text', t.locality)}${field('Conditions et contact confidentialité', 'policy_text', 'text', t.policy_text || 'Contactez-nous pour la disponibilité, les annulations et vos données. Aucun paiement en ligne.', 'required maxlength="1000"')}${button('Enregistrer mon identité')}</form>
+    <section id="offering" class="card stack"><h2>2. Ajoutez votre première offre</h2><p>${t.business_mode === 'appointments' ? config.services.filter((s) => s.active).length + ' prestation(s)' : 'Catalogue : ' + data.items.length + ' article(s)'}</p><form id="offering-add" class="stack">${field(t.business_mode === 'appointments' ? 'Nom de la prestation' : 'Nom de l’article', 'name', 'text', '', 'required maxlength="100"')}${field('Prix en centimes (12000 = 120 MAD)', 'price_centimes', 'number', 12000, 'min="0" max="10000000" required')}${t.business_mode === 'appointments' ? field('Durée en minutes', 'duration_min', 'number', 30, 'min="5" max="240" step="5" required') + field('Début de journée (heure locale)', 'opening', 'time', '09:00', 'required step="300"') + field('Fin de journée (heure locale)', 'closing', 'time', '18:00', 'required step="300"') : '<p>La disponibilité sera confirmée par le commerce. Aucun stock synchronisé.</p>'}${button('Ajouter mon offre')}</form><p>Rendez-vous : les horaires ci-dessus s’appliquent chaque jour à la première équipe. Les jours de fermeture, équipes et pauses se règlent dans l’espace professionnel.</p></section>
+    <section id="publication" class="card stack"><h2>3. Vérifiez puis publiez</h2><div id="draft-preview">${branded(data, true)}</div><form id="publish-form" class="stack"><label class="check"><input type="checkbox" name="ownership" required> Je représente ce commerce et j’ai les droits sur son contenu.</label><label class="check"><input type="checkbox" name="policies" required> J’ai vérifié les prix, horaires et conditions publiques.</label>${button('Publier ma vitrine')}</form><div id="publish-result" role="status"></div><div class="row"><button id="unpublish" class="secondary">Dépublier</button><button id="pause" class="secondary">${t.paused ? 'Reprendre les demandes' : 'Mettre en pause'}</button></div></section>
+    <form id="asset-form" class="card stack"><h2>Logo facultatif</h2><p>PNG, JPEG ou WebP, 256 Ko maximum. Dix images par commerce. Vous devez détenir les droits.</p><label>Votre logo<input name="image" type="file" accept="image/png,image/jpeg,image/webp" required></label><label class="check"><input type="checkbox" name="rights" required> Je possède les droits sur cette image.</label>${button('Importer mon logo')}</form>
+    <form id="share-preview" class="card stack"><h2>Aperçu à partager</h2><p>Lien privé valable 24 heures, sans coordonnées clients ni formulaire actif.</p><label class="check"><input type="checkbox" name="authorized" required> Le commerce autorise ce contenu et cet aperçu.</label>${button('Créer un aperçu autorisé')}<div id="share-result"></div></form>
+    <a href="/dashboard">Retour à mon activité</a></section>`;
+  onform('#identity', async (d) => {
+    await api('/merchant/launch', { ...Object.fromEntries(d), revision: data.revision }, 'PUT');
+    await setup();
+  });
+  const offerKey = crypto.randomUUID().replaceAll('-', '');
+  onform('#offering-add', async (d) => {
+    const minutes = (v) => Number(v.slice(0, 2)) * 60 + Number(v.slice(3));
+    await api(
+      '/merchant/launch/offer',
+      {
+        name: d.get('name'),
+        price_centimes: Number(d.get('price_centimes')),
+        duration_min: Number(d.get('duration_min')),
+        start_min: d.get('opening') ? minutes(d.get('opening')) : 0,
+        end_min: d.get('closing') ? minutes(d.get('closing')) : 0,
+      },
+      'POST',
+      { 'Idempotency-Key': offerKey },
+    );
+    await setup();
+  });
+  onform('#publish-form', async () => {
+    const r = await api(
+      '/merchant/launch/publish',
+      { confirm_ownership: true, confirm_policies: true },
+      'POST',
+      { 'Idempotency-Key': crypto.randomUUID().replaceAll('-', '') },
+    );
+    main.querySelector('#publish-result').innerHTML =
+      `<h3>Votre vitrine est publiée.</h3><label>Lien à copier dans votre bio<input readonly value="${esc(r.bio_url)}"></label><a class="button" href="${esc(r.url)}">Voir ma vitrine</a><a href="/merchant/launch/qr.svg" download="salonos-qr.svg">Télécharger le QR</a><img class="qr" src="/merchant/launch/qr.svg" alt="QR vers votre vitrine">`;
+  });
+  main.querySelector('#unpublish').onclick = async () => {
+    try {
+      await api('/merchant/launch/unpublish', {});
+      await setup();
+    } catch (e) {
+      document.querySelector('#notice').textContent = e.message;
+    }
+  };
+  main.querySelector('#pause').onclick = async () => {
+    try {
+      await api('/merchant/launch/pause', { paused: !t.paused });
+      await setup();
+    } catch (e) {
+      document.querySelector('#notice').textContent = e.message;
+    }
+  };
+  onform('#asset-form', async (d) => {
+    const file = d.get('image');
+    if (file.size > 262144) throw Error('Image trop volumineuse (256 Ko maximum).');
+    const bytes = new Uint8Array(await file.arrayBuffer()),
+      digest = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', bytes)), (b) =>
+        b.toString(16).padStart(2, '0'),
+      ).join('');
+    const { ticket } = await api('/merchant/assets/ticket', {
+      mime: file.type,
+      size: file.size,
+      sha256: digest,
+      owns_rights: d.has('rights'),
+    });
+    let text = '';
+    for (const byte of bytes) text += String.fromCharCode(byte);
+    await api('/merchant/assets/upload', { ticket, data: btoa(text) });
+    document.querySelector('#notice').textContent = 'Logo enregistré.';
+  });
+  onform('#share-preview', async (d) => {
+    const r = await api('/merchant/launch/previews', {
+      authorized_business_content: d.has('authorized'),
+    });
+    main.querySelector('#share-result').innerHTML =
+      `<a href="${esc(r.url)}">Ouvrir l’aperçu autorisé</a>`;
+  });
 }
 async function retail() {
   await session();

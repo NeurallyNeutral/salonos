@@ -154,7 +154,7 @@ async function inbox() {
     data.mail
       .map(
         (m) =>
-          `<article class="card"><strong>${esc(m.recipient)}</strong><p><a href="/login#${esc(m.token)}">Se connecter avec ce lien</a></p></article>`,
+          `<article class="card"><strong>${esc(m.recipient)}</strong><p><a href="/${m.flow === 'signup' ? 'signup' : 'login'}#${esc(m.token)}">${m.flow === 'signup' ? 'Vérifier mon adresse' : 'Se connecter avec ce lien'}</a></p></article>`,
       )
       .join('') +
     '<h2>Messages simulés</h2>' +
@@ -263,6 +263,10 @@ let selectedTab = 'overview',
   calendarMode = 'day';
 async function dashboard() {
   const s = await session();
+  if (config.tenant.storefront_status === 'draft') {
+    location.href = '/setup';
+    return;
+  }
   if (config.tenant.business_mode === 'catalog_inquiry') {
     location.href = '/launch';
     return;
