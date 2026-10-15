@@ -114,7 +114,9 @@ test('M6 bulk key rotation decrypts every stored payload after old keys retire; 
       newKek = randomUUID(),
       nextSecret = randomUUID() + randomUUID();
     await db
-      .prepare("INSERT INTO tenant_provider_connections VALUES ('t_atlas','email',1,?)")
+      .prepare(
+        "INSERT INTO tenant_provider_connections(tenant_id,channel,enabled,config_cipher) VALUES ('t_atlas','email',1,?)",
+      )
       .bind(await seal(oldKek, { api_key: 'synthetic-rotation-key' }))
       .run();
     const customer = await db

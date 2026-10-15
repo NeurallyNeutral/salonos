@@ -50,6 +50,10 @@ export async function launchStart(path, dependencies) {
     await insightsPage();
     return true;
   }
+  if (path === '/connections') {
+    await connectionsPage();
+    return true;
+  }
   if (path === '/signup') {
     await signupPage();
     return true;
@@ -347,4 +351,27 @@ async function insightsPage() {
     .join(
       '',
     )}</div><article class="card"><h2>Votre parcours</h2>${m.events.map((e) => `<p>${esc({ tenant_created: 'Compte créé', first_publish: 'Première publication', booking_created: 'Réservations', inquiry_created: 'Demandes', visit_completed: 'Visites terminées', merchant_payment_recorded: 'Paiements déclarés' }[e.kind] || e.kind)} : ${e.count}</p>`).join('')}<p>Durée avant publication : ${m.setup_elapsed_ms === null ? 'non mesurée' : Math.round(m.setup_elapsed_ms / 1000) + ' secondes, pauses incluses'}. Cette durée ne constitue pas une étude d’usage.</p><h2>Sources déclarées</h2>${m.sources.map((s) => `<p>${esc(s.source)} : ${s.count} ${s.type === 'inquiry' ? 'demande(s)' : 'réservation(s)'}</p>`).join('')}<p>Source déclarée, sans preuve d’acquisition ni de causalité. Paiements indépendamment vérifiés : indisponibles.</p><p>Aide déclarée : ${m.support.recorded_minutes} minute(s), ${m.support.recorded_interventions} intervention(s). L’aide non déclarée n’est pas mesurée.</p><h2>Offre & usage</h2><p>${esc(plan.subscription?.display_name || 'Offre à définir')}. Aucune facturation automatique.</p>${plan.quotas.map((q) => `<p>${esc(q.feature)} : ${plan.usage[q.feature] ?? 0} / ${q.maximum}</p>`).join('')}</article><a href="/dashboard">Retour à mon activité</a></section>`;
+}
+async function connectionsPage() {
+  await session();
+  const { connectors } = await api('/merchant/connectors');
+  main.innerHTML = `<section><h1>Vos connexions, à votre choix.</h1><p>Votre vitrine et le lien WhatsApp fonctionnent sans connexion Meta. Le lien ouvre une discussion à l’initiative du client ; il n’active aucun rappel.</p><div class="grid">${connectors.map((c) => `<article class="card"><h2>${esc({ email: 'E-mail', whatsapp: 'WhatsApp officiel', instagram: 'Instagram — étude différée' }[c.channel])}</h2><p class="pill">${esc(c.state)}</p><p>${c.live_provider_verified ? 'Livraison réelle vérifiée après connexion.' : 'Aucune preuve de livraison réelle. Les rappels automatiques ne sont pas prêts.'}</p><ol>${c.next_steps.map((s) => `<li>${esc(s)}</li>`).join('')}</ol>${location.hostname === 'localhost' ? `<button data-test="${c.channel}" class="secondary">Tester la fixture ${c.channel}</button>` : ''}<button data-disconnect="${c.channel}" class="secondary">Déconnecter ${c.channel}</button></article>`).join('')}</div><p>Une acceptation par le fournisseur ne vaut pas livraison. Aucun fournisseur réel n’est configuré depuis cette page. Les coûts et autorisations doivent être approuvés avant une connexion officielle.</p><a href="/dashboard">Retour à mon activité</a></section>`;
+  for (const el of main.querySelectorAll('[data-test]'))
+    el.onclick = async () => {
+      try {
+        await api('/merchant/connectors/' + el.dataset.test + '/mock-check', {});
+        await connectionsPage();
+      } catch (e) {
+        document.querySelector('#notice').textContent = e.message;
+      }
+    };
+  for (const el of main.querySelectorAll('[data-disconnect]'))
+    el.onclick = async () => {
+      try {
+        await api('/merchant/connectors/' + el.dataset.disconnect + '/disconnect', {});
+        await connectionsPage();
+      } catch (e) {
+        document.querySelector('#notice').textContent = e.message;
+      }
+    };
 }

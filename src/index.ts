@@ -15,6 +15,7 @@ import { signup, preview, processSignup } from './onboarding';
 import { media } from './media';
 import './commerce';
 import './launch-metrics';
+import './connectors';
 import { retentionSweep, cleanupOperationalData } from './privacy';
 import html from '../web/index.html';
 import css from '../web/app.css';
