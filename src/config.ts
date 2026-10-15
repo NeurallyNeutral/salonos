@@ -89,6 +89,15 @@ merchant.patch('/settings', async (c) => {
     } else fail(400, 'unknown_setting');
   }
   if (!Object.keys(changes).length) fail(400, 'empty_update');
+  if (changes.loyalty_bps > 0) {
+    const policy = await stmt(
+      c.env.DB,
+      'SELECT onboarding_started_at,loyalty_terms_accepted_at FROM tenants WHERE id=?',
+      m.tenant_id,
+    ).first<Row>();
+    if (policy!.onboarding_started_at && !policy!.loyalty_terms_accepted_at)
+      fail(400, 'loyalty_terms_required');
+  }
   await c.env.DB.batch([
     stmt(
       c.env.DB,

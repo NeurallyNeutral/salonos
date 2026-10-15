@@ -13,6 +13,8 @@ import './operations';
 import { storefront } from './storefront';
 import { signup, preview, processSignup } from './onboarding';
 import { media } from './media';
+import './commerce';
+import './launch-metrics';
 import { retentionSweep, cleanupOperationalData } from './privacy';
 import html from '../web/index.html';
 import css from '../web/app.css';
@@ -163,6 +165,10 @@ for (const path of [
   '/signup',
   '/preview',
   '/setup',
+  '/retention',
+  '/insights',
+  '/connections',
+  '/account',
 ])
   app.get(path, (c) => c.html(html));
 export default {

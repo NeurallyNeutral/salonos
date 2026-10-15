@@ -42,6 +42,14 @@ export async function launchStart(path, dependencies) {
     await setup();
     return true;
   }
+  if (path === '/retention') {
+    await retentionPage();
+    return true;
+  }
+  if (path === '/insights') {
+    await insightsPage();
+    return true;
+  }
   if (path === '/signup') {
     await signupPage();
     return true;
@@ -256,4 +264,87 @@ async function retail() {
     });
     await retail();
   });
+  main.insertAdjacentHTML(
+    'beforeend',
+    '<nav class="tabs"><a href="/setup">Personnaliser ma vitrine</a><a href="/retention">Fidélité & avis</a><a href="/insights">Mes indicateurs</a><a href="/connections">Connexions facultatives</a><a href="/account">Mes données & compte</a></nav><section id="commerce-money"><h2>Remises et encaissements</h2></section>',
+  );
+  const moneyTarget = main.querySelector('#commerce-money');
+  for (const inquiry of inquiries.filter((i) => i.status === 'fulfilled')) {
+    const { payments } = await api('/merchant/inquiries/' + inquiry.id + '/payments'),
+      { eligible, text } = await api('/merchant/inquiries/' + inquiry.id + '/review-prompt'),
+      balance = await api('/merchant/customers/' + inquiry.customer_id + '/loyalty');
+    const box = document.createElement('article');
+    box.className = 'card';
+    box.innerHTML = `<h3>${esc(inquiry.item_name)} · ${esc(inquiry.name)}</h3><p>Crédit chez vous : ${money(balance.balance_centimes)}. Utilisation uniquement avec accord et vérification du client.</p><form id="pay-${esc(inquiry.id)}" class="stack">${field('Montant effectivement encaissé (MAD)', 'amount', 'number', '0', 'min="0" max="100000" step="0.01" required')}${field('Crédit utilisé (MAD)', 'redeemed', 'number', '0', 'min="0" step="0.01"')}<label class="check"><input type="checkbox" name="received" required> Je confirme avoir réellement reçu ce paiement.</label><label class="check"><input type="checkbox" name="verified"> Identité et accord du client vérifiés en personne pour utiliser le crédit.</label>${button('Enregistrer l’encaissement')}</form><p>Déclaration du commerce, sans vérification bancaire indépendante.</p>${payments.map((p) => `<div class="divider"><p>Encaissé : ${money(p.amount_centimes)} · crédit gagné : ${money(p.earned_centimes)} · remboursé : ${money(p.refunded_cash)}</p><form id="refund-${esc(p.id)}">${field('Remboursement en espèces (MAD)', 'cash', 'number', '0', 'min="0" step="0.01"')}${field('Crédit à restituer (MAD)', 'credit', 'number', '0', 'min="0" step="0.01"')}${field('Motif', 'reason', 'text', '', 'required')}${button('Déclarer le remboursement')}</form></div>`).join('')}${eligible ? `<p>Invitation neutre, à proposer à tous les clients éligibles de leur première visite :</p><blockquote>${esc(text)}</blockquote><p>Aucun envoi automatique. Aucun avantage lié à l’avis.</p>` : ''}`;
+    moneyTarget.append(box);
+    const paymentKey = crypto.randomUUID().replaceAll('-', '');
+    onform('#pay-' + inquiry.id, async (d) => {
+      await api(
+        '/merchant/inquiries/' + inquiry.id + '/payments',
+        {
+          actual_payment_received: d.has('received'),
+          amount_centimes: cents(d.get('amount')),
+          redeemed_centimes: cents(d.get('redeemed')),
+          customer_verified_in_person: d.has('verified'),
+        },
+        'POST',
+        { 'Idempotency-Key': paymentKey },
+      );
+      await retail();
+    });
+    for (const p of payments) {
+      const refundKey = crypto.randomUUID().replaceAll('-', '');
+      onform('#refund-' + p.id, async (d) => {
+        await api(
+          '/merchant/commerce-payments/' + p.id + '/refunds',
+          {
+            cash_centimes: cents(d.get('cash')),
+            credit_centimes: cents(d.get('credit')),
+            reason: d.get('reason'),
+          },
+          'POST',
+          { 'Idempotency-Key': refundKey },
+        );
+        await retail();
+      });
+    }
+  }
+}
+function cents(v) {
+  const s = String(v).replace(',', '.');
+  if (!/^\d+(?:\.\d{1,2})?$/.test(s))
+    throw Error('Utilisez un montant avec deux décimales au maximum.');
+  const [major, minor = ''] = s.split('.');
+  return Number(major) * 100 + Number(minor.padEnd(2, '0'));
+}
+async function retentionPage() {
+  await session();
+  const { tenant: t } = await api('/merchant/launch');
+  main.innerHTML = `<section class="narrow"><h1>Fidélité & avis, avec clarté.</h1><form id="retention-form" class="card stack"><label>Crédit financé par le commerce<select name="loyalty_bps"><option value="0" ${t.loyalty_bps === 0 ? 'selected' : ''}>Désactivé</option><option value="100" ${t.loyalty_bps === 100 ? 'selected' : ''}>1 %</option><option value="200" ${t.loyalty_bps === 200 ? 'selected' : ''}>2 %</option></select></label><p>Uniquement sur un montant réellement encaissé et déclaré après une visite ou remise terminée. Réduction chez votre commerce uniquement, sans retrait, transfert ni intérêt. Les remboursements annulent proportionnellement les crédits.</p><label class="check"><input type="checkbox" name="terms"> Je comprends que mon commerce finance ce crédit et doit informer le client de ses conditions.</label>${field('Lien Google pour un avis honnête', 'review_url', 'url', t.review_url || '')}${button('Enregistrer la fidélité et les avis')}</form><p>Les avis sont proposés à tous les clients éligibles après une première visite terminée, sans filtrer leur satisfaction et sans récompense. Aucun envoi marketing automatique activé ici.</p><a href="/dashboard">Retour à mon activité</a></section>`;
+  onform('#retention-form', async (d) => {
+    await api('/merchant/retention-settings', {
+      loyalty_bps: Number(d.get('loyalty_bps')),
+      understands_merchant_funded_terms: d.has('terms'),
+      review_url: d.get('review_url'),
+    });
+    document.querySelector('#notice').textContent = 'Conditions et préférences enregistrées.';
+  });
+}
+async function insightsPage() {
+  await session();
+  const m = await api('/merchant/launch-metrics'),
+    plan = await api('/merchant/plan-usage');
+  main.innerHTML = `<section><p class="eyebrow">${m.dataset === 'synthetic' ? 'DONNÉES SYNTHÉTIQUES' : 'ACTIVITÉ ENREGISTRÉE'}</p><h1>Des chiffres qui disent ce qu’ils mesurent.</h1><div class="grid">${[
+    ['Demandes reçues', m.inquiries],
+    ['Remises terminées', m.fulfilled],
+    ['Encaissements catalogue déclarés', money(m.commerce_merchant_reported_paid_centimes)],
+    ['Remboursements déclarés', money(m.commerce_refunded_centimes)],
+    ['Clients revenus', m.repeat_customers],
+  ]
+    .map(
+      ([l, v]) => `<article class="card metric"><span>${l}</span><strong>${v}</strong></article>`,
+    )
+    .join(
+      '',
+    )}</div><article class="card"><h2>Votre parcours</h2>${m.events.map((e) => `<p>${esc({ tenant_created: 'Compte créé', first_publish: 'Première publication', booking_created: 'Réservations', inquiry_created: 'Demandes', visit_completed: 'Visites terminées', merchant_payment_recorded: 'Paiements déclarés' }[e.kind] || e.kind)} : ${e.count}</p>`).join('')}<p>Durée avant publication : ${m.setup_elapsed_ms === null ? 'non mesurée' : Math.round(m.setup_elapsed_ms / 1000) + ' secondes, pauses incluses'}. Cette durée ne constitue pas une étude d’usage.</p><h2>Sources déclarées</h2>${m.sources.map((s) => `<p>${esc(s.source)} : ${s.count} ${s.type === 'inquiry' ? 'demande(s)' : 'réservation(s)'}</p>`).join('')}<p>Source déclarée, sans preuve d’acquisition ni de causalité. Paiements indépendamment vérifiés : indisponibles.</p><p>Aide déclarée : ${m.support.recorded_minutes} minute(s), ${m.support.recorded_interventions} intervention(s). L’aide non déclarée n’est pas mesurée.</p><h2>Offre & usage</h2><p>${esc(plan.subscription?.display_name || 'Offre à définir')}. Aucune facturation automatique.</p>${plan.quotas.map((q) => `<p>${esc(q.feature)} : ${plan.usage[q.feature] ?? 0} / ${q.maximum}</p>`).join('')}</article><a href="/dashboard">Retour à mon activité</a></section>`;
 }
