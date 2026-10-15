@@ -81,3 +81,4 @@ Check each exit code: PowerShell does not automatically stop a pasted sequence o
 - French is delivered. A message dictionary and language/direction boundary begin localization; full Arabic copy and RTL browser validation remain future work.
 
 `reference/` preserves historical unsafe/simulated material solely for provenance; it is never imported or served. No deploy script or automatic deployment is configured. All live infrastructure remains owner-controlled.
+xxx
