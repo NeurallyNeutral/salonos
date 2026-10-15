@@ -5,8 +5,8 @@
 - [x] V2 A–F implemented and tested milestones published on codex/v2-launch-kit.
 - [x] Self-service identity, offering, publication, separate modes and safe previews implemented.
 - [x] V1 booking/auth/delivery/loyalty protections preserved; catalog accounting and tenant privacy covered.
-- [ ] Final G local suite, screenshots, recovery, discovery and performance results recorded.
-- [ ] Final-head GitHub CI green and PR ready for review.
+- [x] Final G local suite, screenshots, recovery, discovery and performance results recorded.
+- [x] Implementation push and PR CI green; PR #2 ready for review. Any later head must pass before merge.
 - [ ] Five independent human onboarding trials and physical-phone short demo validated.
 - [ ] Chosen live providers, privacy, infrastructure, recovery and owner deployment gates approved.
 

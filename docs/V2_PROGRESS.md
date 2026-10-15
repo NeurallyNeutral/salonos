@@ -1,6 +1,6 @@
 # V2 engineering progress
 
-Updated 2026-10-15. V2_CODE_COMPLETE: NO. LIVE_PROVIDER_VERIFIED: NO. PILOT_READY: NO.
+Updated 2026-10-15. V2_CODE_COMPLETE: YES (local/mock engineering scope). LIVE_PROVIDER_VERIFIED: NO. HUMAN_ONBOARDING_VERIFIED: NO. PILOT_READY: NO.
 
 ## Baseline and delta checklist
 
@@ -59,3 +59,12 @@ Reviewed 360px storefront/merchant screenshots: controls readable and no horizon
 Owner dependencies: five independent first-time human onboarding trials and phone/demo timing; global sender/domain for real verification; owner-approved infrastructure/object storage/scheduler/recovery; optional official WhatsApp permissions/templates/costs and signed delivered receipts; privacy/CNDP/loyalty terms. Instagram runtime, catalog automatic marketing, subscription collection, checkout/shipping, scraping/outreach, Arabic translation/RTL QA and live/production testing are not claimed. All external sends, provisioning and deployments remain zero.
 
 Review PR is stacked on codex/pilot-implementation because V1 PR #1 is still open; verified this branch is ahead of V1 with no missing commits. Neither PR #1 nor main is merged/modified. See V2_HANDOFF.md for exact commands and owner checklist. LOCAL_CODE_COMPLETE: YES (implemented mock scope). V2_CODE_COMPLETE: NO until final GitHub gates pass. LIVE_PROVIDER_VERIFIED: NO. HUMAN_ONBOARDING_VERIFIED: NO. PILOT_READY: NO.
+
+
+## Verified GitHub implementation gate
+
+Implementation head `de53729f5b0ce1a824f7979d3b11cfc388786fa4` passed every required step in both [push CI 38789442808](https://github.com/NeurallyNeutral/salonos/actions/runs/38789442808) and [PR CI 38789495867](https://github.com/NeurallyNeutral/salonos/actions/runs/38789495867). Clean install, zero-vulnerability audit, lint/typecheck/build, 36 API scenarios, 10 browser scenarios, handoff/source checks, original demo, 29-table/image recovery, five-merchant automated demo, performance and synthetic discovery all passed. Earlier F CI failure is superseded by the tested dashboard fix; no failing assertion was removed.
+
+[Review PR #2](https://github.com/NeurallyNeutral/salonos/pull/2) targets the V1 branch, remains unmerged, and is attached to this chat. Connector publication verified identical local/remote Git tree hashes for every milestone. Native Git credentials remain unavailable; an authenticated owner can clone the remote branch normally. Original V1 checkout still contains its preserved uncommitted regression test.
+
+Persistent local demo started successfully; `/health`, `/ready`, `/shop/atelier-atlas` and `/shop/maison-sable` each returned 200. CODE_COMPLETE: YES for implemented local/mock scope. LIVE_PROVIDER_VERIFIED: NO. HUMAN_ONBOARDING_VERIFIED: NO. PILOT_READY: NO. No external sends, deployment, provisioning, charges or outreach were performed. Final documentation-only head must pass the same required CI before merge.
