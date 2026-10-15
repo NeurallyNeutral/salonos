@@ -10,10 +10,12 @@ import { messageText } from './providers';
 import './workflows';
 import './loyalty';
 import './operations';
+import { storefront } from './storefront';
 import { retentionSweep, cleanupOperationalData } from './privacy';
 import html from '../web/index.html';
 import css from '../web/app.css';
 import javascript from '../web/app.txt';
+import launchJavascript from '../web/launch.txt';
 
 const app = new Hono<App>();
 app.use(
@@ -75,6 +77,7 @@ app.get('/ready', async (c) => {
 app.route('/auth', auth);
 app.route('/merchant', merchant);
 app.route('/public', publicApi);
+app.route('/storefront', storefront);
 app.route('/manage-api', manageApi);
 app.route('/webhooks', webhooks);
 app.post('/unsubscribe', async (c) => {
@@ -130,6 +133,10 @@ app.get('/app.js', (c) => {
   c.header('Content-Type', 'application/javascript; charset=utf-8');
   return c.body(javascript);
 });
+app.get('/launch.js', (c) => {
+  c.header('Content-Type', 'application/javascript; charset=utf-8');
+  return c.body(launchJavascript);
+});
 for (const path of [
   '/',
   '/login',
@@ -140,6 +147,10 @@ for (const path of [
   '/privacy',
   '/unsubscribe',
   '/book/:slug',
+  '/shop/:slug',
+  '/launch',
+  '/signup',
+  '/preview',
 ])
   app.get(path, (c) => c.html(html));
 export default {

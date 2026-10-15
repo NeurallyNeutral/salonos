@@ -1,6 +1,8 @@
 import { createHash, randomBytes } from 'node:crypto';
+import { v2Fixtures } from './v2-fixtures.mjs';
 // Explicitly synthetic, out-of-band fixtures. Never executed by deployed Worker code.
 export async function demoFixtures(db) {
+  await v2Fixtures(db);
   for (const suffix of ['atlas', 'rivage']) {
     const bid = 'demo_past_' + suffix;
     if (await db.prepare('SELECT id FROM bookings WHERE id=?').bind(bid).first()) continue;

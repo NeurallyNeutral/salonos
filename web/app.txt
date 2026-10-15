@@ -1,3 +1,4 @@
+import { launchStart } from '/launch.js';
 // French dictionary and document direction form the translation boundary (Arabic/RTL ready).
 const messages = {
   fr: {
@@ -262,6 +263,10 @@ let selectedTab = 'overview',
   calendarMode = 'day';
 async function dashboard() {
   const s = await session();
+  if (config.tenant.business_mode === 'catalog_inquiry') {
+    location.href = '/launch';
+    return;
+  }
   calendarDay ??= config.local_today;
   main.innerHTML = `<div class="row between"><div>${title(config.tenant.name, 'Votre salon, en un regard.', config.tenant.timezone)}</div><div class="row"><a class="button" href="/manual">Ajouter un rendez-vous</a><a href="/book/${esc(config.tenant.slug)}">Page de réservation</a><button class="secondary" id="logout">Déconnexion</button></div></div><nav class="tabs" aria-label="Gestion du salon">${[
     ['overview', 'Vue d’ensemble'],
@@ -684,6 +689,7 @@ async function start() {
       $('#demo-link').hidden = false;
     }
     const path = location.pathname;
+    if (await launchStart(path, { api, session })) return;
     if (path === '/') await home();
     else if (path === '/login') await login();
     else if (path === '/inbox') await inbox();

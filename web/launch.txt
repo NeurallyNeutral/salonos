@@ -1,0 +1,111 @@
+const esc = (v) =>
+  String(v ?? '').replace(
+    /[&<>"']/g,
+    (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch],
+  );
+const money = (n) =>
+  new Intl.NumberFormat('fr-MA', { style: 'currency', currency: 'MAD' }).format(n / 100);
+const field = (label, name, type = 'text', value = '', extra = '') =>
+  `<label>${esc(label)}<input name="${name}" type="${type}" value="${esc(value)}" ${extra}></label>`;
+const button = (text) => `<button type="submit">${text}</button>`;
+let api, session, main;
+function onform(selector, fn) {
+  const form = main.querySelector(selector);
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const submit = form.querySelector('button[type=submit]');
+    submit.disabled = true;
+    try {
+      await fn(new FormData(form));
+    } catch (e) {
+      document.querySelector('#notice').textContent = e.message;
+    } finally {
+      submit.disabled = false;
+    }
+  });
+}
+export async function launchStart(path, dependencies) {
+  ({ api, session } = dependencies);
+  main = document.querySelector('#main');
+  if (path.startsWith('/shop/')) {
+    await shop(decodeURIComponent(path.slice(6)));
+    return true;
+  }
+  if (path === '/launch') {
+    await retail();
+    return true;
+  }
+  return false;
+}
+function branded(data, preview = false) {
+  const t = data.tenant;
+  main.dataset.palette = t.palette;
+  main.dataset.template = t.template;
+  return `<section class="store-hero"><p class="eyebrow">${t.is_demo ? 'DÉMONSTRATION FICTIVE · ' : ''}${esc(t.locality || 'Un commerce près de vous')}${preview ? ' · BROUILLON NON PUBLIÉ' : ''}</p><h1>${esc(t.name)}</h1><p class="store-headline">${esc(t.headline || 'Une sélection pensée pour vous.')}</p><p>${esc(t.description)}</p><div class="row">${data.whatsapp_url ? `<a class="button secondary" href="${esc(data.whatsapp_url)}" rel="noreferrer">Contacter sur WhatsApp</a>` : ''}${t.business_mode === 'appointments' && !preview ? `<a class="button" href="/book/${esc(t.slug)}?source=instagram">Réserver un rendez-vous</a>` : ''}</div><p class="muted">Contact à votre initiative. Rappels automatiques désactivés sans connexion officielle.</p></section>`;
+}
+async function shop(slug) {
+  const data = await api('/storefront/' + encodeURIComponent(slug)),
+    t = data.tenant;
+  main.innerHTML =
+    branded(data) +
+    `<section aria-label="Notre sélection" class="grid">${data.items.map((i, n) => `<article class="card product"><div class="product-art art-${n % 3}" aria-hidden="true">${esc(i.name.slice(0, 1))}</div><h2>${esc(i.name)}</h2><p>${esc(i.description)}</p><p>${esc(i.variant)}</p><strong>${money(i.price_centimes)}</strong><p>${i.availability === 'available' ? 'Disponible, à confirmer' : i.availability === 'unavailable' ? 'Indisponible' : 'Disponibilité sur demande'}</p>${!t.paused && i.availability !== 'unavailable' ? `<button data-item="${esc(i.id)}">Demander · ${esc(i.name)}</button>` : ''}</article>`).join('')}</section>${t.paused ? '<p role="status">Les demandes sont temporairement suspendues.</p>' : ''}<section id="inquiry-form"></section><article class="card"><h2>Informations pratiques</h2><p>${esc(t.policy_text || 'Votre demande ne vaut ni commande confirmée ni paiement. Le commerce confirme les modalités directement avec vous.')}</p><p>Le crédit fidélité éventuel est financé par le commerce sur un paiement réellement encaissé. Aucun avantage pour un avis.</p></article>`;
+  main.querySelectorAll('[data-item]').forEach(
+    (el) =>
+      (el.onclick = () => {
+        const i = data.items.find((x) => x.id === el.dataset.item);
+        const key = crypto.randomUUID().replaceAll('-', '');
+        main.querySelector('#inquiry-form').innerHTML =
+          `<form class="card stack"><h2>Votre demande : ${esc(i.name)}</h2>${field('Votre nom', 'name', 'text', '', 'required maxlength="100"')}${field('Téléphone avec indicatif', 'phone', 'tel', '', 'required')}${field('E-mail facultatif', 'email', 'email')}${field('Quantité', 'quantity', 'number', 1, 'min="1" max="20" required')}${field('Taille, couleur ou variante', 'variant', 'text', i.variant, 'maxlength="100"')}${field('Votre question', 'note', 'text', '', 'maxlength="600"')}<label class="check"><input type="checkbox" name="consent_contact" required> J’autorise le commerce à me répondre pour cette demande.</label><p>Il s’agit d’une demande, aucun paiement ni stock réservé.</p>${button('Envoyer ma demande')}</form>`;
+        main.querySelector('#inquiry-form input').focus();
+        onform('#inquiry-form form', async (d) => {
+          const result = await api(
+            '/storefront/' + encodeURIComponent(slug) + '/inquiries',
+            {
+              ...Object.fromEntries(d),
+              item_id: i.id,
+              quantity: Number(d.get('quantity')),
+              consent_contact: d.has('consent_contact'),
+              source: ['instagram', 'google', 'referral'].includes(
+                new URLSearchParams(location.search).get('source'),
+              )
+                ? new URLSearchParams(location.search).get('source')
+                : 'direct',
+            },
+            'POST',
+            { 'Idempotency-Key': key },
+          );
+          main.querySelector('#inquiry-form').innerHTML =
+            `<article class="card" role="status"><h2>Votre demande est enregistrée.</h2><p>Référence ${esc(result.id)}. Le commerce confirmera la disponibilité. Aucun paiement reçu.</p></article>`;
+        });
+      }),
+  );
+}
+async function retail() {
+  await session();
+  const data = await api('/merchant/config');
+  if (data.tenant.business_mode !== 'catalog_inquiry') {
+    main.innerHTML =
+      '<h1>Votre Launch Kit</h1><a class="button" href="/dashboard">Ouvrir votre agenda</a>';
+    return;
+  }
+  const { inquiries } = await api('/merchant/inquiries'),
+    { items } = await api('/merchant/catalog');
+  main.innerHTML = `<p class="eyebrow">ESPACE PROFESSIONNEL · ${data.tenant.is_demo ? 'DONNÉES SYNTHÉTIQUES' : 'CATALOGUE'}</p><h1>${esc(data.tenant.name)}</h1><p>Les demandes ne sont pas des ventes. Les montants restent déclarés par le commerce.</p><a class="button secondary" href="/shop/${esc(data.tenant.slug)}">Voir ma vitrine</a><section class="stack"><h2>Demandes reçues</h2>${inquiries.length ? inquiries.map((i) => `<article class="card"><h3>${esc(i.item_name)} · ${esc(i.name)}</h3><p>${esc(i.phone)} · ${esc(i.variant)} · ${i.quantity} article(s)</p><p>${esc(i.note)}</p><p>Source : ${esc(i.source)} · État : ${esc(i.status)}</p>${i.status !== 'fulfilled' ? `<form data-inquiry="${esc(i.id)}"><label>État de la demande<select name="status"><option value="contacted">Contact pris</option><option value="fulfilled">Remise effectuée</option><option value="cancelled">Annulée</option></select></label>${button('Enregistrer l’état')}</form>` : ''}</article>`).join('') : '<p>Aucune demande pour le moment.</p>'}</section><section><h2>Votre catalogue</h2>${items.map((i) => `<article class="card"><h3>${esc(i.name)}</h3><p>${money(i.price_centimes)} · ${esc(i.availability)}</p></article>`).join('')}<form id="item-add" class="card stack"><h3>Ajouter un article</h3>${field('Nom de l’article', 'name', 'text', '', 'required')}${field('Description', 'description')}${field('Variante', 'variant')}${field('Prix en centimes', 'price_centimes', 'number', 12000, 'min="0" max="10000000" required')}${button('Ajouter au catalogue')}</form></section>`;
+  main.querySelectorAll('[data-inquiry]').forEach((form) =>
+    onform('[data-inquiry="' + form.dataset.inquiry + '"]', async (d) => {
+      await api(
+        '/merchant/inquiries/' + form.dataset.inquiry,
+        { status: d.get('status') },
+        'PATCH',
+      );
+      await retail();
+    }),
+  );
+  onform('#item-add', async (d) => {
+    await api('/merchant/catalog', {
+      ...Object.fromEntries(d),
+      price_centimes: Number(d.get('price_centimes')),
+    });
+    await retail();
+  });
+}

@@ -7,7 +7,7 @@ const problems = [];
 for (const root of ['src', 'scripts', 'tests', 'web']) {
   for (const relative of await readdir(root, { recursive: true })) {
     const file = path.join(root, relative);
-    if (!/\.(ts|mjs|css|html)$/.test(file) && file !== path.join('web', 'app.txt')) continue;
+    if (!/\.(ts|mjs|css|html)$/.test(file) && !file.endsWith('.txt')) continue;
     const source = await readFile(file, 'utf8');
     const options = { ...(await prettier.resolveConfig(file)), filepath: file };
     if (file.endsWith('.txt')) options.parser = 'babel';

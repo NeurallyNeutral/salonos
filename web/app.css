@@ -426,3 +426,42 @@ summary {
     font-size: 25px;
   }
 }
+[data-palette='clay'] {
+  --green: #633b2b;
+  --sand: #f1e4d5;
+}
+[data-palette='ink'] {
+  --green: #26364c;
+  --sand: #e4e8ef;
+}
+.store-hero {
+  background: var(--sand);
+  padding: clamp(24px, 5vw, 64px);
+  border-radius: 24px;
+  margin-bottom: 32px;
+}
+.store-headline {
+  font-family: Georgia, serif;
+  font-size: clamp(26px, 4vw, 42px);
+  line-height: 1.2;
+}
+.product-art {
+  display: grid;
+  place-items: center;
+  height: 170px;
+  border-radius: 12px;
+  background: linear-gradient(140deg, #e4d4ba, #f4ede2);
+  color: #633b2b;
+  font:
+    76px Georgia,
+    serif;
+}
+.art-1 {
+  background: linear-gradient(35deg, #d7c3b6, #f6e6da);
+}
+.art-2 {
+  background: linear-gradient(145deg, #c4ceba, #eae5d9);
+}
+.product h2 {
+  margin-bottom: 8px;
+}
