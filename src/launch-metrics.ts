@@ -110,11 +110,13 @@ merchant.get('/inquiries/:id/review-prompt', async (c) => {
   if (!i) fail(404, 'not_found');
   const count = await stmt(
     c.env.DB,
-    "SELECT COUNT(*) n FROM inquiries WHERE tenant_id=? AND customer_id=? AND status='fulfilled' AND id!=? AND fulfilled_at<=?",
+    "SELECT COUNT(*) n FROM inquiries WHERE tenant_id=? AND customer_id=? AND status='fulfilled' AND id!=? AND (fulfilled_at<? OR (fulfilled_at=? AND id<?))",
     tid,
     i.customer_id,
     i.id,
     i.fulfilled_at ?? 0,
+    i.fulfilled_at ?? 0,
+    i.id,
   ).first<Row>();
   const eligible = !!(
     t!.reviews_enabled &&

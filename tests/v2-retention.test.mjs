@@ -101,6 +101,18 @@ test('V2-D fulfilled commerce pays/earns once, integer refund/redeem authorizati
       (await owner.api('/merchant/inquiries/' + next + '/review-prompt')).data.eligible,
       false,
     );
+    await db
+      .prepare('UPDATE inquiries SET fulfilled_at=1 WHERE tenant_id=? AND customer_id=?')
+      .bind('t_rivage', customer)
+      .run();
+    const tied = await Promise.all(
+      [first, next].map(async (inquiryId) => ({
+        id: inquiryId,
+        ...(await owner.api('/merchant/inquiries/' + inquiryId + '/review-prompt')).data,
+      })),
+    );
+    assert.equal(tied.filter((r) => r.eligible).length, 1);
+    assert.equal(tied.find((r) => r.eligible).id, [first, next].sort()[0]);
     const refundBody = { cash_centimes: 6000, credit_centimes: 0, reason: 'Correction fictive' },
       refundKey = key();
     const refund = () =>
