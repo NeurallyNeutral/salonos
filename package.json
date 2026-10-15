@@ -17,7 +17,8 @@
     "demo:scenario": "node scripts/demo-scenario.mjs",
     "test:recovery": "node scripts/recovery-rehearsal.mjs",
     "test:safety": "node scripts/verify-source.mjs",
-    "provision:local": "node scripts/provision.mjs --local"
+    "provision:local": "node scripts/provision.mjs --local",
+    "discovery:dry-run": "node scripts/discovery.mjs"
   },
   "dependencies": {
     "hono": "4.13.13",
