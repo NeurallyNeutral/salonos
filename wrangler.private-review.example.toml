@@ -1,0 +1,25 @@
+# Owner-operated private review only. Copy, replace every CHANGE_ME value, verify Access first.
+name = "salonos-private-review"
+main = "dist/worker.mjs"
+compatibility_date = "2026-07-30"
+workers_dev = false
+
+[build]
+command = "npm run build"
+
+[[routes]]
+pattern = "CHANGE_ME_REVIEW_HOST/*"
+zone_name = "CHANGE_ME_ZONE"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "CHANGE_ME_ISOLATED_D1_NAME"
+database_id = "CHANGE_ME_ISOLATED_D1_ID"
+migrations_dir = "migrations"
+
+[vars]
+APP_BASE_URL = "https://CHANGE_ME_REVIEW_HOST"
+ENVIRONMENT = "production"
+SIGNUP_ENABLED = "false"
+EMAIL_PROVIDER = "disabled"
+WHATSAPP_PROVIDER = "disabled"

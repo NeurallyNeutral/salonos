@@ -11,6 +11,10 @@ const button = (text) => `<button type="submit">${text}</button>`;
 let api, session, main;
 function onform(selector, fn) {
   const form = main.querySelector(selector);
+  form.addEventListener('input', (event) => {
+    event.target.removeAttribute('aria-invalid');
+    event.target.closest('label')?.querySelector('.field-error')?.remove();
+  });
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
     const submit = form.querySelector('button[type=submit]');
@@ -18,6 +22,31 @@ function onform(selector, fn) {
     try {
       await fn(new FormData(form));
     } catch (e) {
+      if (form.id === 'asset-form' && e.code === 'invalid_choice')
+        e.message = 'Choisissez une image PNG, JPEG ou WebP valide.';
+      const name = {
+        invalid_phone: form.elements.namedItem('phone') ? 'phone' : 'contact_phone',
+        invalid_email: 'email',
+        invalid_slug: 'slug',
+        slug_taken: 'slug',
+        image_too_large: 'image',
+        invalid_image: 'image',
+        invalid_upload: 'image',
+        invalid_choice: form.id === 'asset-form' ? 'image' : null,
+        asset_storage_unavailable: 'image',
+        asset_quota: 'image',
+        contact_consent_required: 'consent_contact',
+      }[e.code];
+      const field = name && form.elements.namedItem(name);
+      if (field instanceof HTMLElement) {
+        field.setAttribute('aria-invalid', 'true');
+        const message = document.createElement('span');
+        message.className = 'field-error';
+        message.setAttribute('role', 'alert');
+        message.textContent = e.message;
+        field.insertAdjacentElement('afterend', message);
+        field.focus();
+      }
       document.querySelector('#notice').textContent = e.message;
     } finally {
       submit.disabled = false;
@@ -34,7 +63,7 @@ export async function launchStart(path, dependencies) {
   if (path === '/launch') {
     await session();
     const data = await api('/merchant/launch');
-    if (data.tenant.storefront_status === 'draft') await setup();
+    if (data.tenant.storefront_status === 'draft') location.replace('/setup?step=identity');
     else await retail();
     return true;
   }
@@ -79,23 +108,36 @@ export async function launchStart(path, dependencies) {
 }
 function branded(data, preview = false) {
   const t = data.tenant;
+  const source = new URLSearchParams(location.search).get('source');
+  const sourceQuery = ['instagram', 'google', 'referral'].includes(source)
+    ? '?source=' + encodeURIComponent(source)
+    : '';
   main.dataset.palette = t.palette;
   main.dataset.template = t.template;
-  return `<section class="store-hero"><p class="eyebrow">${t.is_demo ? 'DÉMONSTRATION FICTIVE · ' : ''}${esc(t.locality || 'Un commerce près de vous')}${preview ? ' · BROUILLON NON PUBLIÉ' : ''}</p>${t.logo_url && !preview ? `<img class="merchant-logo" src="${esc(t.logo_url)}" alt="Logo de ${esc(t.name)}">` : ''}<h1>${esc(t.name)}</h1><p class="store-headline">${esc(t.headline || 'Une sélection pensée pour vous.')}</p><p>${esc(t.description)}</p><div class="row">${data.whatsapp_url && !preview ? `<a class="button secondary" href="${esc(data.whatsapp_url)}" rel="noreferrer">Contacter sur WhatsApp</a>` : ''}${t.business_mode === 'appointments' && !preview ? `<a class="button" href="/book/${esc(t.slug)}?source=instagram">Réserver un rendez-vous</a>` : ''}</div><p class="muted">Contact à votre initiative. Rappels automatiques désactivés sans connexion officielle.</p></section>`;
+  return `<section class="store-hero"><p class="eyebrow">${t.is_demo ? 'DÉMONSTRATION FICTIVE · ' : ''}${esc(t.locality || 'Un commerce près de vous')}${preview ? ' · BROUILLON NON PUBLIÉ' : ''}</p>${t.logo_url && !preview ? `<img class="merchant-logo" src="${esc(t.logo_url)}" alt="Logo de ${esc(t.name)}">` : ''}<h1>${esc(t.name)}</h1><p class="store-headline">${esc(t.headline || 'Une sélection pensée pour vous.')}</p><p>${esc(t.description)}</p><div class="row">${data.whatsapp_url && !preview ? `<a class="button secondary" href="${esc(data.whatsapp_url)}" rel="noreferrer">Contacter sur WhatsApp</a>` : ''}${t.business_mode === 'appointments' && !preview ? `<a class="button" href="/book/${esc(t.slug)}${sourceQuery}">Réserver un rendez-vous</a>` : ''}</div><p class="muted">Contact à votre initiative. Rappels automatiques désactivés sans connexion officielle.</p></section>`;
 }
 async function shop(slug) {
   const data = await api('/storefront/' + encodeURIComponent(slug)),
     t = data.tenant;
+  const source = new URLSearchParams(location.search).get('source');
+  const sourceQuery = ['instagram', 'google', 'referral'].includes(source)
+    ? '&source=' + encodeURIComponent(source)
+    : '';
   main.innerHTML =
     branded(data) +
-    `${t.business_mode === 'appointments' ? `<section class="grid">${data.services.map((s) => `<article class="card"><h2>${esc(s.name)}</h2><p>${s.duration_min} minutes · ${money(s.price_centimes)}</p></article>`).join('')}</section>` : ''}<section aria-label="Notre sélection" class="grid">${data.items.map((i, n) => `<article class="card product">${i.image_url ? `<img class="product-photo" src="${esc(i.image_url)}" alt="${esc(i.name)}" loading="lazy" width="500" height="400">` : `<div class="product-art art-${n % 3}" aria-hidden="true">${esc(i.name.slice(0, 1))}</div>`}<h2>${esc(i.name)}</h2><p>${esc(i.description)}</p><p>${esc(i.variant)}</p><strong>${money(i.price_centimes)}</strong><p>${i.availability === 'available' ? 'Disponible, à confirmer' : i.availability === 'unavailable' ? 'Indisponible' : 'Disponibilité sur demande'}</p>${!t.paused && i.availability !== 'unavailable' ? `<button data-item="${esc(i.id)}">Demander · ${esc(i.name)}</button>` : ''}</article>`).join('')}</section>${t.paused ? '<p role="status">Les demandes sont temporairement suspendues.</p>' : ''}<section id="inquiry-form"></section><article class="card"><h2>Informations pratiques</h2><p>${esc(t.policy_text || 'Votre demande ne vaut ni commande confirmée ni paiement. Le commerce confirme les modalités directement avec vous.')}</p><p>Le crédit fidélité éventuel est financé par le commerce sur un paiement réellement encaissé. Aucun avantage pour un avis.</p></article>`;
+    `${t.business_mode === 'appointments' ? `<section class="grid">${data.services.map((s) => `<article class="card"><h2>${esc(s.name)}</h2><p>${s.duration_min} minutes · ${money(s.price_centimes)}</p><a class="button" href="/book/${esc(slug)}?service=${encodeURIComponent(s.id)}${sourceQuery}">Réserver ce soin</a></article>`).join('')}</section>` : ''}<section aria-label="Notre sélection" class="grid">${data.items.map((i, n) => `<article class="card product">${i.image_url ? `<img class="product-photo" src="${esc(i.image_url)}" alt="${esc(i.name)}" loading="lazy" width="500" height="400">` : `<div class="product-art art-${n % 3}" aria-hidden="true">${esc(i.name.slice(0, 1))}</div>`}<h2>${esc(i.name)}</h2><p>${esc(i.description)}</p><p>${esc(i.variant)}</p><strong>${money(i.price_centimes)}</strong><p>${i.availability === 'available' ? 'Disponible, à confirmer' : i.availability === 'unavailable' ? 'Indisponible' : 'Disponibilité sur demande'}</p>${!t.paused && i.availability !== 'unavailable' ? `<button data-item="${esc(i.id)}">Demander · ${esc(i.name)}</button>` : ''}</article>`).join('')}</section>${t.paused ? '<p role="status">Les demandes sont temporairement suspendues.</p>' : ''}<section id="inquiry-form"></section><article class="card"><h2>Informations pratiques</h2><p>${esc(t.policy_text || 'Votre demande ne vaut ni commande confirmée ni paiement. Le commerce confirme les modalités directement avec vous.')}</p><p>Le crédit fidélité éventuel est financé par le commerce sur un paiement réellement encaissé. Aucun avantage pour un avis.</p></article>`;
   main.querySelectorAll('[data-item]').forEach(
     (el) =>
       (el.onclick = () => {
         const i = data.items.find((x) => x.id === el.dataset.item);
         const key = crypto.randomUUID().replaceAll('-', '');
+        el.closest('article').after(main.querySelector('#inquiry-form'));
         main.querySelector('#inquiry-form').innerHTML =
-          `<form class="card stack"><h2>Votre demande : ${esc(i.name)}</h2>${field('Votre nom', 'name', 'text', '', 'required maxlength="100"')}${field('Téléphone avec indicatif', 'phone', 'tel', '', 'required')}${field('E-mail facultatif', 'email', 'email')}${field('Quantité', 'quantity', 'number', 1, 'min="1" max="20" required')}${field('Taille, couleur ou variante', 'variant', 'text', i.variant, 'maxlength="100"')}${field('Votre question', 'note', 'text', '', 'maxlength="600"')}<label class="check"><input type="checkbox" name="consent_contact" required> J’autorise le commerce à me répondre pour cette demande.</label><p>Il s’agit d’une demande, aucun paiement ni stock réservé.</p>${button('Envoyer ma demande')}</form>`;
+          `<form class="card stack"><p class="eyebrow">DEMANDE · ${money(i.price_centimes)} INDICATIF</p><h2>${esc(i.name)}</h2><p>${esc(i.variant)} · disponibilité à confirmer par le commerce</p>${field('Votre nom', 'name', 'text', '', 'required maxlength="100"')}${field('Téléphone avec indicatif', 'phone', 'tel', '', 'required')}${field('E-mail facultatif', 'email', 'email')}${field('Quantité', 'quantity', 'number', 1, 'min="1" max="20" required')}${field('Taille, couleur ou variante', 'variant', 'text', i.variant, 'maxlength="100"')}${field('Votre question', 'note', 'text', '', 'maxlength="600"')}<label class="check"><input type="checkbox" name="consent_contact" required> J’autorise le commerce à me répondre pour cette demande.</label><p>Il s’agit d’une demande, aucun paiement ni stock réservé.</p>${button('Envoyer ma demande')}<button type="button" class="secondary" id="close-inquiry">Choisir un autre article</button></form>`;
+        main.querySelector('#close-inquiry').onclick = () => {
+          main.querySelector('#inquiry-form').replaceChildren();
+          el.focus();
+        };
         main.querySelector('#inquiry-form input').focus();
         onform('#inquiry-form form', async (d) => {
           const result = await api(
@@ -130,6 +172,8 @@ async function signupPage() {
       await api('/signup-api/consume', { token: location.hash.slice(1) });
       location.replace('/launch');
     });
+  } else if (new URLSearchParams(location.search).get('check') === '1') {
+    main.innerHTML = `<section class="narrow"><p class="eyebrow">01 · VÉRIFICATION DU COMPTE</p><h1>Consultez votre messagerie.</h1><p>Nous avons demandé un lien à usage unique. Ouvrez-le pour confirmer votre adresse, puis vous créerez votre commerce.</p><article class="card"><h2>Votre lien arrive par e-mail</h2><p>Vérifiez aussi les courriers indésirables. Vous pouvez revenir ici après avoir ouvert le lien.</p>${location.hostname === 'localhost' ? '<p>Mode local : le fournisseur est simulé.</p><a href="/inbox">Ouvrir la boîte démo</a>' : ''}</article><a href="/signup">Corriger mon adresse</a></section>`;
   } else {
     main.innerHTML =
       '<section class="narrow"><p class="eyebrow">VOTRE COMMERCE, VOTRE LIEN</p><h1>Prêt à ouvrir votre vitrine ?</h1><p>Réservations ou catalogue : commencez avec une adresse vérifiée. Aucun paiement demandé.</p><form id="signup-form" class="card stack">' +
@@ -145,9 +189,8 @@ async function signupPage() {
     onform('#signup-form', async (d) => {
       await api('/signup-api/request', { email: d.get('email') });
       if (location.hostname === 'localhost') await api('/dev/process', {});
-      main.querySelector('#signup-result').innerHTML =
-        '<p>Consultez votre messagerie pour vérifier votre adresse.</p>' +
-        (location.hostname === 'localhost' ? '<a href="/inbox">Ouvrir la boîte démo</a>' : '');
+      history.replaceState(null, '', '/signup?check=1');
+      await signupPage();
     });
   }
 }
@@ -156,8 +199,12 @@ async function setup() {
   const data = await api('/merchant/launch'),
     t = data.tenant,
     config = await api('/merchant/config');
-  main.innerHTML = `<section class="narrow"><p class="eyebrow">LAUNCH KIT · ${t.storefront_status === 'published' ? 'PUBLIÉ' : 'BROUILLON NON PUBLIÉ'}</p><h1>Votre vitrine, à votre rythme.</h1><p>Les modifications sont conservées dans votre compte. Reprenez après une fermeture ou depuis un autre appareil.</p><nav class="tabs"><a href="#identity">1. Identité</a><a href="#offering">2. Offre</a><a href="#publication">3. Publication</a><a href="/dashboard">Gérer mon activité</a></nav>
-    <form id="identity" class="card stack"><h2>1. Présentez votre commerce</h2>${field('Nom du commerce', 'name', 'text', t.name, 'required maxlength="100"')}${field('Adresse de la vitrine', 'slug', 'text', t.slug.startsWith('draft-') ? '' : t.slug, 'required pattern="[a-z][a-z0-9-]{2,59}"')}<label>Mode du commerce<select name="business_mode"><option value="appointments" ${t.business_mode === 'appointments' ? 'selected' : ''}>Rendez-vous</option><option value="catalog_inquiry" ${t.business_mode === 'catalog_inquiry' ? 'selected' : ''}>Catalogue & demandes</option></select></label><label>Style<select name="template">${['atelier', 'studio', 'boutique'].map((v) => `<option value="${v}" ${t.template === v ? 'selected' : ''}>${v}</option>`).join('')}</select></label><label>Palette<select name="palette">${[
+  const requested = new URLSearchParams(location.search).get('step');
+  const step = ['identity', 'offer', 'preview', 'publish', 'options'].includes(requested)
+    ? requested
+    : 'identity';
+  main.innerHTML = `<section class="narrow"><p class="eyebrow">${t.storefront_status === 'published' ? 'VITRINE PUBLIÉE' : 'CRÉATION · BROUILLON NON PUBLIÉ'}</p><h1>Votre vitrine, étape par étape.</h1><p>Les modifications sont conservées dans votre compte. Reprenez après une fermeture ou depuis un autre appareil.</p><nav class="setup-steps" aria-label="Étapes de création"><a href="/setup?step=identity" ${step === 'identity' ? 'aria-current="step"' : ''}>1. Identité</a><a href="/setup?step=offer" ${step === 'offer' ? 'aria-current="step"' : ''}>2. Première offre</a><a href="/setup?step=preview" ${step === 'preview' ? 'aria-current="step"' : ''}>3. Aperçu</a><a href="/setup?step=publish" ${step === 'publish' ? 'aria-current="step"' : ''}>4. Publication</a><a href="/setup?step=options" ${step === 'options' ? 'aria-current="step"' : ''}>Après publication</a></nav>
+    <form id="identity" class="card stack"><h2>1. Présentez votre commerce</h2>${field('Nom du commerce', 'name', 'text', t.name, 'required maxlength="100"')}${field('Adresse de la vitrine', 'slug', 'text', t.slug.startsWith('draft-') ? '' : t.slug, 'required pattern="[a-z][a-z0-9\\-]{2,59}" title="3 à 60 caractères : lettres minuscules, chiffres et traits d’union"')}<label>Mode du commerce<select name="business_mode"><option value="appointments" ${t.business_mode === 'appointments' ? 'selected' : ''}>Rendez-vous</option><option value="catalog_inquiry" ${t.business_mode === 'catalog_inquiry' ? 'selected' : ''}>Catalogue & demandes</option></select></label><label>Style<select name="template">${['atelier', 'studio', 'boutique'].map((v) => `<option value="${v}" ${t.template === v ? 'selected' : ''}>${v}</option>`).join('')}</select></label><label>Palette<select name="palette">${[
       ['forest', 'Forêt'],
       ['clay', 'Argile'],
       ['ink', 'Encre'],
@@ -171,9 +218,62 @@ async function setup() {
     <form id="asset-form" class="card stack"><h2>Logo facultatif</h2><p>PNG, JPEG ou WebP, 256 Ko maximum. Dix images par commerce. Vous devez détenir les droits.</p><label>Utilisation<select name="purpose"><option value="logo">Logo du commerce</option>${data.items.map((i) => `<option value="${esc(i.id)}">Photo : ${esc(i.name)}</option>`).join('')}</select></label><label>Votre logo ou photo<input name="image" type="file" accept="image/png,image/jpeg,image/webp" required></label><label class="check"><input type="checkbox" name="rights" required> Je possède les droits sur cette image.</label>${button('Importer mon logo')}</form>
     <form id="share-preview" class="card stack"><h2>Aperçu à partager</h2><p>Lien privé valable 24 heures, sans coordonnées clients ni formulaire actif.</p><label class="check"><input type="checkbox" name="authorized" required> Le commerce autorise ce contenu et cet aperçu.</label>${button('Créer un aperçu autorisé')}<div id="share-result"></div></form>
     <a href="/dashboard">Retour à mon activité</a></section>`;
+  for (const [selector, visible] of [
+    ['#identity', step === 'identity'],
+    ['#offering', step === 'offer'],
+    ['#publication', ['preview', 'publish'].includes(step)],
+    ['#asset-form', step === 'options'],
+    ['#share-preview', step === 'options'],
+  ])
+    main.querySelector(selector).hidden = !visible;
+  if (step === 'preview') {
+    main.querySelector('#publication h2').textContent = '3. Vérifiez votre aperçu';
+    const offers =
+      t.business_mode === 'appointments'
+        ? config.services
+            .filter((service) => service.active)
+            .map(
+              (service) =>
+                `<p><strong>${esc(service.name)}</strong> · ${service.duration_min} min · ${money(service.price_centimes)}</p>`,
+            )
+            .join('')
+        : data.items
+            .map(
+              (item) => `<p><strong>${esc(item.name)}</strong> · ${money(item.price_centimes)}</p>`,
+            )
+            .join('');
+    const clock = (minutes) =>
+      `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
+    const weekdays = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
+    const hours =
+      t.business_mode === 'appointments'
+        ? `<h3>Horaires de départ</h3>${config.hours.map((hour) => `<p>${weekdays[hour.weekday]} · ${clock(hour.start_min)}–${clock(hour.end_min)}</p>`).join('')}`
+        : '';
+    main
+      .querySelector('#draft-preview')
+      .insertAdjacentHTML(
+        'beforeend',
+        `<div class="card"><h3>Offres visibles après publication</h3>${offers || '<p>Aucune offre active.</p>'}${hours}<p>Vérifiez les prix, horaires et conditions avant de publier.</p></div>`,
+      );
+    main.querySelector('#publish-form').hidden = true;
+    main
+      .querySelector('#publication')
+      .insertAdjacentHTML(
+        'beforeend',
+        '<a class="button" href="/setup?step=publish">Continuer vers la publication</a>',
+      );
+  }
+  if (step === 'publish') {
+    main.querySelector('#publication h2').textContent = '4. Publiez votre vitrine';
+    main.querySelector('#draft-preview').hidden = true;
+  }
+  if (step !== 'options') {
+    main.querySelector('#unpublish').hidden = true;
+    main.querySelector('#pause').hidden = true;
+  }
   onform('#identity', async (d) => {
     await api('/merchant/launch', { ...Object.fromEntries(d), revision: data.revision }, 'PUT');
-    await setup();
+    location.href = '/setup?step=offer';
   });
   const offerKey = crypto.randomUUID().replaceAll('-', '');
   onform('#offering-add', async (d) => {
@@ -190,7 +290,7 @@ async function setup() {
       'POST',
       { 'Idempotency-Key': offerKey },
     );
-    await setup();
+    location.href = '/setup?step=preview';
   });
   onform('#publish-form', async () => {
     const r = await api(
@@ -200,7 +300,9 @@ async function setup() {
       { 'Idempotency-Key': crypto.randomUUID().replaceAll('-', '') },
     );
     main.querySelector('#publish-result').innerHTML =
-      `<h3>Votre vitrine est publiée.</h3><label>Lien à copier dans votre bio<input readonly value="${esc(r.bio_url)}"></label><a class="button" href="${esc(r.url)}">Voir ma vitrine</a><a href="/merchant/launch/qr.svg" download="salonos-qr.svg">Télécharger le QR</a><img class="qr" src="/merchant/launch/qr.svg" alt="QR vers votre vitrine">`;
+      `<h3>Votre vitrine est publiée.</h3><label>Lien à copier dans votre bio<input readonly value="${esc(r.bio_url)}"></label><a class="button" href="${esc(r.url)}">Voir ma vitrine</a><a href="/merchant/launch/qr.svg" download="salonos-qr.svg">Télécharger le QR</a><img class="qr" src="/merchant/launch/qr.svg" alt="QR vers votre vitrine"><p>La suite : consultez vos demandes ou votre agenda, puis ajoutez des images si vous le souhaitez.</p><a href="/dashboard">Ouvrir mon activité</a> · <a href="/setup?step=options">Personnaliser davantage</a>`;
+    main.querySelector('section.narrow > .eyebrow').textContent = 'VITRINE PUBLIÉE';
+    main.querySelector('#publish-form').hidden = true;
   });
   main.querySelector('#unpublish').onclick = async () => {
     try {
@@ -262,11 +364,18 @@ async function retail() {
       '<h1>Votre Launch Kit</h1><a class="button" href="/dashboard">Ouvrir votre agenda</a>';
     return;
   }
-  const offset = Math.max(0, Number(new URLSearchParams(location.search).get('offset')) || 0);
-  const inquiryPage = await api('/merchant/inquiries?offset=' + offset),
+  const params = new URLSearchParams(location.search);
+  const view = ['inquiries', 'catalog', 'payments'].includes(params.get('view'))
+    ? params.get('view')
+    : 'inquiries';
+  const offset = Math.max(0, Number(params.get('offset')) || 0);
+  const query = (params.get('q') || '').trim().slice(0, 100);
+  const inquiryPage = await api(
+      '/merchant/inquiries?offset=' + offset + '&q=' + encodeURIComponent(query),
+    ),
     inquiries = inquiryPage.inquiries;
   const { items } = await api('/merchant/catalog');
-  main.innerHTML = `<p class="eyebrow">ESPACE PROFESSIONNEL · ${data.tenant.is_demo ? 'DONNÉES SYNTHÉTIQUES' : 'CATALOGUE'}</p><h1>${esc(data.tenant.name)}</h1><p>Les demandes ne sont pas des ventes. Les montants restent déclarés par le commerce.</p><a class="button secondary" href="/shop/${esc(data.tenant.slug)}">Voir ma vitrine</a><section class="stack"><h2>Demandes reçues</h2>${inquiries.length ? inquiries.map((i) => `<article class="card"><h3>${esc(i.item_name)} · ${esc(i.name)}</h3><p>${esc(i.phone)} · ${esc(i.variant)} · ${i.quantity} article(s)</p><p>${esc(i.note)}</p><p>Source : ${esc(i.source)} · État : ${esc({ new: 'Nouvelle', contacted: 'Contact pris', fulfilled: 'Remise effectuée', cancelled: 'Annulée' }[i.status])}</p>${i.status !== 'fulfilled' ? `<form data-inquiry="${esc(i.id)}"><label>État de la demande<select name="status"><option value="contacted">Contact pris</option><option value="fulfilled">Remise effectuée</option><option value="cancelled">Annulée</option></select></label>${button('Enregistrer l’état')}</form>` : ''}</article>`).join('') : '<p>Aucune demande pour le moment.</p>'}</section><section><h2>Votre catalogue</h2>${items
+  main.innerHTML = `<p class="eyebrow">ESPACE PROFESSIONNEL · ${data.tenant.is_demo ? 'DONNÉES SYNTHÉTIQUES' : 'CATALOGUE'}</p><h1>${esc(data.tenant.name)}</h1><p>Les demandes ne sont pas des ventes. Les montants restent déclarés par le commerce.</p><a class="button secondary" href="/shop/${esc(data.tenant.slug)}">Voir ma vitrine</a><nav class="workspace-nav" aria-label="Travail du catalogue"><a href="/launch?view=inquiries" ${view === 'inquiries' ? 'aria-current="page"' : ''}>Demandes</a><a href="/launch?view=catalog" ${view === 'catalog' ? 'aria-current="page"' : ''}>Articles</a><a href="/launch?view=payments" ${view === 'payments' ? 'aria-current="page"' : ''}>Paiements & fidélité</a><a href="/setup">Vitrine & réglages</a><a href="/insights">Indicateurs</a></nav><section id="inquiries-work" class="stack" ${view !== 'inquiries' ? 'hidden' : ''}><h2>Demandes reçues</h2><form id="inquiry-search" action="/launch" method="get" class="search-bar"><input type="hidden" name="view" value="inquiries"><label>Rechercher un client, article, téléphone ou référence<input name="q" value="${esc(query)}" maxlength="100" type="search"></label><button type="submit">Rechercher</button></form>${inquiries.length ? inquiries.map((i) => `<article class="card"><h3>${esc(i.item_name)} · ${esc(i.name)}</h3><p>${esc(i.phone)} · ${esc(i.variant)} · ${i.quantity} article(s)</p><p>${esc(i.note)}</p><p>Source : ${esc(i.source)} · État : ${esc({ new: 'Nouvelle', contacted: 'Contact pris', fulfilled: 'Remise effectuée', cancelled: 'Annulée' }[i.status])}</p>${i.status !== 'fulfilled' ? `<form data-inquiry="${esc(i.id)}"><label>État de la demande<select name="status"><option value="contacted">Contact pris</option><option value="fulfilled">Remise effectuée</option><option value="cancelled">Annulée</option></select></label>${button('Enregistrer l’état')}</form>` : ''}</article>`).join('') : '<p>Aucune demande pour le moment.</p>'}</section><section id="catalog-work" ${view !== 'catalog' ? 'hidden' : ''}><h2>Votre catalogue</h2>${items
     .map(
       (i) =>
         `<form id="edit-${esc(i.id)}" class="card stack"><h3>${esc(i.name)}</h3>${field('Nom de l’article', 'name', 'text', i.name, 'required')}${field('Description', 'description', 'text', i.description)}${field('Variante', 'variant', 'text', i.variant)}${field('Prix (MAD)', 'price', 'number', (i.price_centimes / 100).toFixed(2), 'min="0" step="0.01" required')}<label>Disponibilité<select name="availability">${[
@@ -320,13 +429,14 @@ async function retail() {
   });
   main.insertAdjacentHTML(
     'beforeend',
-    '<nav class="tabs"><a href="/setup">Personnaliser ma vitrine</a><a href="/retention">Fidélité & avis</a><a href="/insights">Mes indicateurs</a><a href="/connections">Connexions facultatives</a><a href="/account">Mes données & compte</a></nav><section id="commerce-money"><h2>Remises et encaissements</h2></section>',
+    `<nav class="workspace-nav" aria-label="Autres réglages"><a href="/retention">Fidélité & avis</a><a href="/connections">Connexions</a><a href="/account">Compte</a></nav><section id="commerce-money" ${view !== 'payments' ? 'hidden' : ''}><h2>Remises et encaissements</h2><p>Uniquement les paiements réellement reçus et déclarés après remise. Une demande n’est pas une vente.</p></section>`,
   );
   const moneyTarget = main.querySelector('#commerce-money');
   main.insertAdjacentHTML(
     'beforeend',
-    `<nav aria-label="Pages de demandes">${offset > 0 ? `<a href="/launch?offset=${Math.max(0, offset - 100)}">Demandes plus récentes</a>` : ''}${inquiryPage.next_offset !== null ? `<a href="/launch?offset=${inquiryPage.next_offset}">Demandes précédentes</a>` : ''}</nav>`,
+    `<nav aria-label="Pages de demandes" ${view !== 'inquiries' ? 'hidden' : ''}>${offset > 0 ? `<a href="/launch?view=inquiries&q=${encodeURIComponent(query)}&offset=${Math.max(0, offset - 100)}">Demandes plus récentes</a>` : ''}${inquiryPage.next_offset !== null ? `<a href="/launch?view=inquiries&q=${encodeURIComponent(query)}&offset=${inquiryPage.next_offset}">Demandes précédentes</a>` : ''}</nav>`,
   );
+  if (view !== 'payments') return;
   for (const inquiry of inquiries.filter((i) => i.status === 'fulfilled')) {
     const { payments } = await api('/merchant/inquiries/' + inquiry.id + '/payments'),
       { eligible, text } = await api('/merchant/inquiries/' + inquiry.id + '/review-prompt'),

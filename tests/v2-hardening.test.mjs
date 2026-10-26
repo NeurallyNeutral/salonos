@@ -32,8 +32,22 @@ test('V2-G inquiry pagination/export covers every record and product images enfo
     assert.equal(second.inquiries.length, 5);
     assert.equal(second.next_offset, null);
     assert.equal(new Set([...first.inquiries, ...second.inquiries].map((i) => i.id)).size, 105);
+    const older = (await owner.api('/merchant/inquiries?q=page_1')).data.inquiries;
+    assert.equal(
+      older.some((i) => i.id === 'page_1'),
+      true,
+    );
+    assert.equal(
+      older.some((i) => i.id === 'page_105'),
+      true,
+    );
+    assert.equal(
+      (await owner.api('/merchant/inquiries?q=Client%20pages')).data.inquiries.length,
+      100,
+    );
     assert.equal((await owner.api('/merchant/account/export')).data.inquiries.length, 105);
     assert.equal((await other.api('/merchant/inquiries')).data.inquiries.length, 0);
+    assert.equal((await other.api('/merchant/inquiries?q=page_1')).data.inquiries.length, 0);
     assert.equal((await owner.api('/merchant/inquiries?offset=-1')).status, 400);
     const data = Buffer.from(
         'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=',

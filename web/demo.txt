@@ -1,0 +1,159 @@
+const mode = location.pathname.includes('/customer') ? 'customer' : 'merchant';
+const sequences = {
+  merchant: [
+    [
+      '01 · LE POINT DE DÉPART',
+      'Un commerce, un espace clair.',
+      'Découvrez comment une vitrine et un espace de travail se rejoignent, sans saisir deux fois la même information.',
+      'Une présentation fictive et interactive. Aucun compte réel n’est créé.',
+      'Atelier Aube',
+      'Votre activité, simplement.',
+    ],
+    [
+      '02 · COMPTE',
+      'Une adresse, puis on avance.',
+      'Commencez par votre adresse professionnelle. La vraie application exige un lien à usage unique envoyé par e-mail.',
+      'Saisissez une adresse fictive pour cette simulation.',
+      'Votre accès',
+      'La vérification protège les réglages du commerce.',
+    ],
+    [
+      '03 · VÉRIFICATION',
+      'Regardez votre boîte de réception.',
+      'Le message ci-contre est une animation simulée. Dans le produit réel, seul le lien reçu par e-mail vérifie le compte.',
+      'Aucun message n’a été envoyé. Continuer simule l’ouverture du lien.',
+      'SalonOS',
+      'Votre lien de vérification est prêt.',
+    ],
+    [
+      '04 · VITRINE',
+      'Votre adresse publique prend forme.',
+      'Choisissez votre activité, votre premier service et vos horaires essentiels. Prévisualisez les informations avant de publier.',
+      'Publication simulée dans cette présentation.',
+      'Atelier Aube',
+      'Soin visage · 45 min · 320 MAD',
+    ],
+    [
+      '05 · ACTIVITÉ',
+      'Une cliente réserve. Votre journée s’ajuste.',
+      'Un créneau confirmé apparaît dans l’agenda. Les réservations réelles utilisent des créneaux atomiques dans D1.',
+      'Réservation fictive, aucune donnée client réelle.',
+      'Aujourd’hui',
+      '10:30 · Soin visage · Cliente fictive',
+    ],
+    [
+      '06 · FIDÉLITÉ',
+      'Le retour se construit après la visite.',
+      'Une visite terminée et un paiement réellement déclaré peuvent ouvrir un crédit financé par le commerce. Les avis restent neutres et sans récompense.',
+      'Aucun paiement ou message n’est effectué ici.',
+      'Relation durable',
+      'Paiement déclaré · crédit selon les conditions',
+    ],
+  ],
+  customer: [
+    [
+      '01 · DÉCOUVERTE',
+      'Un lieu à découvrir, à son rythme.',
+      'La page appartient d’abord au commerce. Prestations et articles sont présentés avec un chemin clair vers l’action.',
+      'Vitrine et articles entièrement fictifs.',
+      'Atelier Aube',
+      'Un moment juste pour vous.',
+    ],
+    [
+      '02 · CHOIX',
+      'Une offre, un prochain geste évident.',
+      'Choisissez un service et un créneau, ou un article et sa variante. Revenez en arrière si vous changez d’avis.',
+      'Les disponibilités de cette scène sont illustratives.',
+      'Votre sélection',
+      'Soin visage · 45 min · 320 MAD',
+    ],
+    [
+      '03 · DÉTAILS',
+      'Vos coordonnées restent utiles, jamais décoratives.',
+      'Dans la vraie application, le commerce reçoit les informations nécessaires à la réservation ou à la demande, selon votre consentement.',
+      'Aucune coordonnée réelle n’est demandée dans cette présentation.',
+      'Confirmation',
+      'Nom fictif · contact selon consentement',
+    ],
+    [
+      '04 · CONFIRMATION',
+      'Une réponse sans ambiguïté.',
+      'Un rendez-vous confirmé occupe un créneau. Une demande d’article attend la réponse du commerce : aucun stock ni paiement n’est réservé.',
+      'Confirmation entièrement simulée.',
+      'Votre suite',
+      'Créneau confirmé ou demande enregistrée',
+    ],
+    [
+      '05 · CÔTÉ COMMERCE',
+      'Le commerce sait quoi faire ensuite.',
+      'La réservation rejoint l’agenda ou la demande rejoint la liste à traiter. Le paiement, la remise et la fidélité restent des étapes distinctes.',
+      'Aucune action réelle ou message externe.',
+      'À traiter',
+      'Nouvelle demande · réponse du commerce attendue',
+    ],
+  ],
+};
+const scenes = sequences[mode];
+const main = document.querySelector('#scene');
+let step = 0;
+let demoEmail = '';
+function escape(value) {
+  return String(value).replace(
+    /[&<>"']/g,
+    (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch],
+  );
+}
+function draw() {
+  const [eyebrow, title, description, note, cardTitle, cardText] = scenes[step];
+  const inbox = mode === 'merchant' && step === 2;
+  main.innerHTML = `<section class="copy" key="${step}"><p class="eyebrow">${eyebrow}</p><h1>${title}</h1><p>${description}</p>${mode === 'merchant' && step === 1 ? '<form class="email-form" id="demo-email"><label for="email">Adresse e-mail pour la scène simulée</label><input id="email" type="email" required placeholder="vous@exemple.test" autocomplete="off"><button type="submit">Voir la vérification</button></form>' : ''}${inbox ? `<p class="simulation">Scène simulée pour ${escape(demoEmail || 'vous@exemple.test')} · aucun e-mail envoyé.</p>` : ''}<span class="fact">${note}</span></section><div class="stage" aria-hidden="true"><div class="art-card">${inbox ? '<div class="mail-icon"><span></span></div>' : '<svg class="sketch" viewBox="0 0 300 70"><path d="M8 56 C48 4 65 68 108 26 S158 55 201 20 S250 66 292 12"/></svg>'}<small>${inbox ? 'COURRIER SIMULÉ' : 'SALONOS · HISTOIRE GUIDÉE'}</small><strong>${cardTitle}</strong><div class="art-line"></div><p>${cardText}</p></div></div>`;
+  document.querySelector('#count').textContent =
+    `${String(step + 1).padStart(2, '0')} / ${String(scenes.length).padStart(2, '0')}`;
+  const bar = document.querySelector('.progress-track');
+  bar.setAttribute('aria-valuenow', String(step + 1));
+  bar.setAttribute('aria-valuemax', String(scenes.length));
+  document.querySelector('#progress').style.width = `${((step + 1) / scenes.length) * 100}%`;
+  document.querySelector('#back').disabled = step === 0;
+  document.querySelector('#next').textContent =
+    step === scenes.length - 1 ? 'Terminer' : 'Continuer ↗';
+  if (step === 1 && mode === 'merchant') {
+    const input = document.querySelector('#email');
+    input.value = demoEmail;
+    document.querySelector('#demo-email').addEventListener('submit', (event) => {
+      event.preventDefault();
+      demoEmail = input.value;
+      if (input.reportValidity()) go(1);
+    });
+  }
+}
+function go(delta) {
+  step = Math.max(0, Math.min(scenes.length - 1, step + delta));
+  draw();
+  main.focus();
+}
+document.querySelector('#back').addEventListener('click', () => go(-1));
+document.querySelector('#next').addEventListener('click', () => {
+  if (mode === 'merchant' && step === 1) {
+    document.querySelector('#demo-email').requestSubmit();
+    return;
+  }
+  if (step === scenes.length - 1) {
+    step = 0;
+    draw();
+    main.focus();
+    return;
+  }
+  go(1);
+});
+document.querySelector('#restart').addEventListener('click', () => {
+  step = 0;
+  demoEmail = '';
+  draw();
+  main.focus();
+});
+document.addEventListener('keydown', (event) => {
+  if (event.target instanceof HTMLInputElement) return;
+  if (event.key === 'ArrowRight') document.querySelector('#next').click();
+  if (event.key === 'ArrowLeft') document.querySelector('#back').click();
+});
+draw();

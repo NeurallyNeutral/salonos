@@ -13,7 +13,7 @@
     "test:e2e": "playwright test",
     "check": "npm run lint && npm run typecheck && npm run build && npm test",
     "test:handoff": "node scripts/verify-handoff.mjs",
-    "db:local": "wrangler d1 migrations apply DB --local",
+    "db:local": "wrangler d1 migrations apply DB --local --config wrangler.local.toml",
     "demo:scenario": "node scripts/demo-scenario.mjs",
     "test:recovery": "node scripts/recovery-rehearsal.mjs",
     "test:safety": "node scripts/verify-source.mjs",
@@ -38,6 +38,6 @@
   },
   "overrides": {
     "sharp": "^0.35.5",
-    "undici": "^7.30.0"
+    "undici": "^7.30.1"
   }
 }

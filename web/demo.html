@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#f5f1e9" />
+    <title>SalonOS — Présentation guidée</title>
+    <link rel="stylesheet" href="/demo.css" />
+    <script type="module" src="/demo.js"></script>
+  </head>
+  <body>
+    <a class="skip" href="#scene">Aller à la présentation</a>
+    <header class="topbar">
+      <a class="wordmark" href="/demo/merchant">Salon<span>OS</span></a
+      ><span>PRÉSENTATION INTERACTIVE · DONNÉES FICTIVES</span>
+      <nav aria-label="Choisir une présentation">
+        <a href="/demo/merchant">Commerce</a><a href="/demo/customer">Client</a>
+      </nav>
+    </header>
+    <main id="scene" tabindex="-1" aria-live="polite"></main>
+    <footer class="controls">
+      <div class="progress-copy">
+        <span id="count"></span>
+        <div class="progress-track" role="progressbar" aria-label="Progression de la présentation">
+          <span id="progress"></span>
+        </div>
+      </div>
+      <div class="control-actions">
+        <button id="back" type="button">Retour</button
+        ><button id="next" type="button">Continuer <span aria-hidden="true">↗</span></button
+        ><button id="restart" type="button" title="Recommencer la présentation">Recommencer</button>
+      </div>
+    </footer>
+  </body>
+</html>

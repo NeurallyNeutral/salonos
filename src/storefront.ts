@@ -256,10 +256,17 @@ storefront.post('/:slug/inquiries', async (c) => {
 });
 merchant.get('/inquiries', async (c) => {
   const offset = integer(Number(c.req.query('offset') ?? 0), 0, 10000000);
+  const search = String(c.req.query('q') ?? '').trim();
+  if (search.length > 100) fail(400, 'invalid_input');
+  const term = '%' + search.replace(/[\\%_]/g, '\\$&') + '%';
   const inquiries = await rows(
     c.env.DB,
-    'SELECT i.*,c.name,c.phone,c.email,p.name item_name FROM inquiries i JOIN customers c ON c.tenant_id=i.tenant_id AND c.id=i.customer_id JOIN catalog_items p ON p.tenant_id=i.tenant_id AND p.id=i.item_id WHERE i.tenant_id=? ORDER BY i.created_at DESC,i.id DESC LIMIT 101 OFFSET ?',
+    "SELECT i.*,c.name,c.phone,c.email,p.name item_name FROM inquiries i JOIN customers c ON c.tenant_id=i.tenant_id AND c.id=i.customer_id JOIN catalog_items p ON p.tenant_id=i.tenant_id AND p.id=i.item_id WHERE i.tenant_id=? AND (c.name LIKE ? ESCAPE '\\' OR c.phone LIKE ? ESCAPE '\\' OR p.name LIKE ? ESCAPE '\\' OR i.id LIKE ? ESCAPE '\\') ORDER BY i.created_at DESC,i.id DESC LIMIT 101 OFFSET ?",
     c.get('merchant').tenant_id,
+    term,
+    term,
+    term,
+    term,
     offset,
   );
   return c.json({

@@ -13,6 +13,18 @@ const messages = {
     invalid_magic: 'Ce lien est expiré ou déjà utilisé. Demandez un nouveau lien.',
     invalid_phone: 'Utilisez un numéro au format international, par exemple +212600000001.',
     invalid_email: 'Vérifiez votre adresse e-mail.',
+    invalid_slug:
+      'Utilisez 3 à 60 caractères : une lettre minuscule puis des lettres, chiffres ou traits d’union.',
+    slug_taken: 'Cette adresse est déjà utilisée. Choisissez-en une autre.',
+    stale_draft: 'Ce brouillon a changé. Rechargez les informations avant de réessayer.',
+    setup_incomplete: 'Terminez l’identité et ajoutez une première offre avant de publier.',
+    mode_has_activity: 'Le mode ne peut plus être modifié après une réservation ou une demande.',
+    contact_consent_required: 'Autorisez le commerce à vous répondre pour cette demande.',
+    inquiry_unavailable: 'Cet article ne reçoit plus de demandes. Choisissez-en un autre.',
+    asset_storage_unavailable: 'Les images ne sont pas disponibles dans cet environnement.',
+    image_too_large: 'Cette image dépasse la limite autorisée.',
+    invalid_image: 'Choisissez une image PNG, JPEG ou WebP valide.',
+    asset_quota: 'La limite d’images de ce commerce est atteinte.',
     rate_limited: 'Trop de tentatives. Réessayez dans quelques minutes.',
     booking_conflict: 'Le rendez-vous a changé ou le créneau est occupé. Actualisez la page.',
     not_found: 'Élément introuvable ou lien expiré.',
@@ -32,6 +44,30 @@ const esc = (v) =>
     (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch],
   );
 const main = $('#main');
+document.addEventListener(
+  'invalid',
+  (event) => {
+    const field = event.target;
+    if (!(field instanceof HTMLElement)) return;
+    event.preventDefault();
+    field.setAttribute('aria-invalid', 'true');
+    const host = field.closest('label') || field.parentElement;
+    host?.querySelector('.field-error')?.remove();
+    const message = document.createElement('span');
+    message.className = 'field-error';
+    message.setAttribute('role', 'alert');
+    message.textContent =
+      field.getAttribute('title') ||
+      (field.matches('[type="email"]')
+        ? 'Vérifiez votre adresse e-mail.'
+        : field.validity.valueMissing
+          ? 'Ce champ est nécessaire.'
+          : field.validationMessage);
+    field.insertAdjacentElement('afterend', message);
+    field.focus();
+  },
+  true,
+);
 let csrf = '',
   config = null,
   environment = null,
@@ -87,6 +123,11 @@ function action(element, fn) {
   });
 }
 function form(element, fn) {
+  element.addEventListener('input', (event) => {
+    const field = event.target;
+    field.removeAttribute('aria-invalid');
+    field.closest('label, div')?.querySelector('.field-error')?.remove();
+  });
   element.addEventListener('submit', async (e) => {
     e.preventDefault();
     const button = $('button[type=submit]', element);
@@ -94,6 +135,17 @@ function form(element, fn) {
     try {
       await fn(new FormData(element));
     } catch (err) {
+      const fieldName = { invalid_phone: 'phone', invalid_email: 'email' }[err.code];
+      const field = fieldName && element.elements.namedItem(fieldName);
+      if (field instanceof HTMLElement) {
+        field.setAttribute('aria-invalid', 'true');
+        const message = document.createElement('span');
+        message.className = 'field-error';
+        message.setAttribute('role', 'alert');
+        message.textContent = err.message;
+        field.insertAdjacentElement('afterend', message);
+        field.focus();
+      }
       notice(err.message);
     } finally {
       if (button) button.disabled = false;
@@ -174,7 +226,7 @@ async function bookingPage(slug, { manual = false, manage = null } = {}) {
   const data = await api('/public/' + encodeURIComponent(slug));
   const services = manage ? data.services.filter((s) => s.id === manage.service_id) : data.services;
   const zone = data.tenant.timezone;
-  main.innerHTML = `<section class="narrow">${title(manual ? 'Ajouter à votre agenda' : data.tenant.name, manage ? 'Déplacer votre rendez-vous' : manual ? 'Un rendez-vous au salon.' : 'Prenez un moment pour vous.', `Horaires affichés dans le fuseau ${zone}.`)}${data.tenant.paused && !manual ? '<p class="notice">Les réservations en ligne sont momentanément suspendues.</p>' : ''}<form id="book-form" class="card stack"><div><label for="service">Votre prestation</label><select id="service" required>${services.map((s) => `<option value="${esc(s.id)}">${esc(s.name)} · ${s.duration_min} min · ${money(s.price_centimes)}</option>`).join('')}</select></div>${input('Date souhaitée', 'date', 'date', nextDay(data.tenant.local_today), `required min="${data.tenant.local_today}"`)}<button type="button" class="secondary" id="load-slots">Voir les disponibilités</button><fieldset><legend>Votre créneau</legend><div id="slots" class="slots"><p class="muted">Choisissez une date pour voir les créneaux.</p></div></fieldset>${manage ? '' : `${input('Votre nom', 'name', 'text', '', 'required maxlength="100" autocomplete="name"')}${input('Téléphone avec indicatif', 'phone', 'tel', '', 'required placeholder="+212600000001" autocomplete="tel"')}${input('E-mail (facultatif)', 'email', 'email', '', 'autocomplete="email"')}<fieldset><legend>Vos préférences de contact</legend>${check('Recevoir les confirmations et rappels par e-mail.', 'consent_email')}${check('Recevoir les confirmations et rappels par WhatsApp.', 'consent_whatsapp')}${check('Recevoir aussi les invitations à donner un avis et les nouvelles de fidélité. Facultatif.', 'consent_marketing')}</fieldset>${manual ? '<div><label for="source">Origine</label><select id="source" name="source"><option value="manual">Téléphone / saisie au salon</option><option value="whatsapp">WhatsApp</option><option value="walk_in">Passage au salon</option></select></div>' : ''}`}<p class="muted"><small>Vos coordonnées servent à gérer ce rendez-vous. <a href="/privacy">Confidentialité et droits</a></small></p><button type="submit">${manage ? 'Confirmer le déplacement' : manual ? 'Ajouter le rendez-vous' : 'Confirmer mon rendez-vous'}</button></form></section>`;
+  main.innerHTML = `<section class="narrow">${title(manual ? 'Ajouter à votre agenda' : data.tenant.name, manage ? 'Déplacer votre rendez-vous' : manual ? 'Un rendez-vous au salon.' : 'Prenez un moment pour vous.', `Horaires affichés dans le fuseau ${zone}.`)}${data.tenant.paused && !manual ? '<p class="notice">Les réservations en ligne sont momentanément suspendues.</p>' : ''}<form id="book-form" class="card stack"><div><label for="service">Votre prestation</label><select id="service" required>${services.map((s) => `<option value="${esc(s.id)}" ${s.id === new URLSearchParams(location.search).get('service') ? 'selected' : ''}>${esc(s.name)} · ${s.duration_min} min · ${money(s.price_centimes)}</option>`).join('')}</select></div>${input('Date souhaitée', 'date', 'date', manual ? data.tenant.local_today : nextDay(data.tenant.local_today), `required min="${data.tenant.local_today}"`)}<button type="button" class="secondary" id="load-slots">Voir les disponibilités</button><fieldset><legend>Votre créneau</legend><div id="slots" class="slots"><p class="muted">Choisissez une date pour voir les créneaux.</p></div></fieldset>${manage ? '' : `${input('Votre nom', 'name', 'text', '', 'required maxlength="100" autocomplete="name"')}${input('Téléphone avec indicatif', 'phone', 'tel', '', 'required placeholder="+212600000001" autocomplete="tel"')}${input('E-mail (facultatif)', 'email', 'email', '', 'autocomplete="email"')}<fieldset><legend>Vos préférences de contact</legend>${check('Recevoir les confirmations et rappels par e-mail.', 'consent_email')}${check('Recevoir les confirmations et rappels par WhatsApp.', 'consent_whatsapp')}${check('Recevoir aussi les invitations à donner un avis et les nouvelles de fidélité. Facultatif.', 'consent_marketing')}</fieldset>${manual ? '<div><label for="source">Origine</label><select id="source" name="source"><option value="manual">Téléphone / saisie au salon</option><option value="whatsapp">WhatsApp</option><option value="walk_in">Passage au salon</option></select></div>' : ''}`}<p class="muted"><small>Vos coordonnées servent à gérer ce rendez-vous. <a href="/privacy">Confidentialité et droits</a></small></p><button type="submit">${manage ? 'Confirmer le déplacement' : manual ? 'Ajouter le rendez-vous' : 'Confirmer mon rendez-vous'}</button></form></section>`;
   let slots = [],
     requestKey = crypto.randomUUID().replaceAll('-', '');
   async function load() {
@@ -296,7 +348,7 @@ async function dashboard() {
     )
     .join(
       '',
-    )}</nav><nav class="tabs" aria-label="Launch Kit"><a href="/setup">Ma vitrine</a><a href="/retention">Fidélité & avis</a><a href="/insights">Parcours & sources</a><a href="/connections">Connexions facultatives</a><a href="/account">Mes données & compte</a></nav><section id="panel"></section>`;
+    )}</nav><section id="panel"></section><details class="workspace-more"><summary>Vitrine, fidélité, indicateurs et compte</summary><nav aria-label="Autres espaces"><a href="/setup">Ma vitrine</a><a href="/retention">Fidélité & avis</a><a href="/insights">Parcours & sources</a><a href="/connections">Connexions facultatives</a><a href="/account">Mes données & compte</a></nav></details>`;
   action($('#logout'), async () => {
     await api('/merchant/logout', {});
     location.href = '/login';
@@ -328,6 +380,23 @@ async function panel() {
 }
 async function overview(target) {
   const m = await api('/merchant/metrics');
+  const from = Date.parse(config.local_today + 'T00:00:00Z') - 14 * 3600000;
+  const allNearBookings = [];
+  let offset = 0;
+  do {
+    const page = await api(
+      `/merchant/bookings?from=${from}&to=${from + 3 * 86400000}&offset=${offset}`,
+    );
+    allNearBookings.push(...page.bookings);
+    offset = page.next_offset;
+  } while (offset !== null);
+  const todayBookings = allNearBookings.filter(
+    (b) => b.local_date === config.local_today && b.status === 'confirmed',
+  );
+  const messageState = await api('/merchant/notifications');
+  const deliveryProblems = messageState.messages.filter((x) =>
+    ['failed_final', 'failed_retryable', 'uncertain'].includes(x.state),
+  ).length;
   const stats = [
     ['Réservations traitées', m.processed_bookings],
     ['Visites terminées', m.completed_visits],
@@ -342,7 +411,29 @@ async function overview(target) {
       ['Crédits émis', money(m.loyalty_issued_centimes)],
       ['Crédits utilisés', money(m.loyalty_redeemed_centimes)],
     );
-  target.innerHTML = `<div class="grid">${stats.map(([label, value]) => `<article class="card metric"><span class="muted">${label}</span><strong>${value}</strong></article>`).join('')}</div><article class="card"><h2>Une lecture fidèle de votre activité</h2><p>Le taux d’absence porte sur les visites terminées et les absences constatées. La valeur réservée n’est pas un encaissement. Les paiements saisis par le commerce sont déclarés par le commerce ; aucune vérification indépendante n’est disponible.</p><p>Les clients revenus ont au moins deux visites terminées. Ces chiffres ne mesurent pas une acquisition de clients attribuable à SalonOS.</p></article><div class="row"><span class="pill ${config.tenant.paused ? 'warning' : ''}">${config.tenant.paused ? 'Réservations en ligne suspendues' : 'Réservations en ligne ouvertes'}</span><a href="/merchant/export.csv">Exporter les rendez-vous (CSV)</a></div>`;
+  target.innerHTML = `<section class="today-panel"><p class="eyebrow">AUJOURD’HUI · ${esc(config.local_today)}</p><h2>Ce qui demande votre attention</h2><p>${todayBookings.length} rendez-vous confirmé(s) aujourd’hui.</p>${
+    todayBookings
+      .slice(0, 5)
+      .map(
+        (b) =>
+          `<p><strong>${esc(b.display_starts_at)}</strong> · ${esc(b.service_name)} · ${esc(b.name)}</p>`,
+      )
+      .join('') || '<p>Votre agenda est libre pour le moment.</p>'
+  }<button class="secondary" id="today-agenda">Ouvrir l’agenda</button><p class="${deliveryProblems || messageState.alerts.length ? 'error' : 'muted'}">${deliveryProblems + messageState.alerts.length} problème(s) de message à examiner.</p><button class="secondary" id="today-messages">Voir les messages</button><span class="pill ${config.tenant.paused ? 'warning' : ''}">${config.tenant.paused ? 'Réservations en ligne suspendues' : 'Réservations en ligne ouvertes'}</span></section><details><summary>Voir les indicateurs d’activité</summary><div class="grid">${stats.map(([label, value]) => `<article class="card metric"><span class="muted">${label}</span><strong>${value}</strong></article>`).join('')}</div><article class="card"><h2>Une lecture fidèle de votre activité</h2><p>La valeur réservée n’est pas un encaissement. Les paiements saisis sont déclarés par le commerce ; aucune vérification indépendante n’est disponible. Ces chiffres ne mesurent pas une acquisition attribuable à SalonOS.</p></article><a href="/merchant/export.csv">Exporter les rendez-vous (CSV)</a></details>`;
+  action($('#today-agenda', target), async () => {
+    selectedTab = 'agenda';
+    $$('[data-tab]').forEach((x) =>
+      x.setAttribute('aria-current', x.dataset.tab === 'agenda' ? 'page' : 'false'),
+    );
+    await panel();
+  });
+  action($('#today-messages', target), async () => {
+    selectedTab = 'messages';
+    $$('[data-tab]').forEach((x) =>
+      x.setAttribute('aria-current', x.dataset.tab === 'messages' ? 'page' : 'false'),
+    );
+    await panel();
+  });
 }
 async function agenda(target) {
   const from = Date.parse(calendarDay + 'T00:00:00Z') - 14 * 3600000,
@@ -694,6 +785,23 @@ async function privacy() {
 }
 async function start() {
   try {
+    document.body.classList.toggle(
+      'customer-view',
+      /^\/(shop|book)\//.test(location.pathname) || location.pathname === '/manage',
+    );
+    document.body.classList.toggle(
+      'merchant-view',
+      [
+        '/dashboard',
+        '/launch',
+        '/setup',
+        '/manual',
+        '/retention',
+        '/insights',
+        '/connections',
+        '/account',
+      ].includes(location.pathname),
+    );
     environment = await api('/app-config');
     if (environment.local) {
       $('#environment').hidden = false;

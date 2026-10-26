@@ -22,6 +22,9 @@ import html from '../web/index.html';
 import css from '../web/app.css';
 import javascript from '../web/app.txt';
 import launchJavascript from '../web/launch.txt';
+import demoHtml from '../web/demo.html';
+import demoCss from '../web/demo.css';
+import demoJavascript from '../web/demo.txt';
 
 const app = new Hono<App>();
 app.use('*', async (c, next) =>
@@ -157,6 +160,16 @@ app.get('/launch.js', (c) => {
   c.header('Content-Type', 'application/javascript; charset=utf-8');
   return c.body(launchJavascript);
 });
+app.get('/demo.css', (c) => {
+  c.header('Content-Type', 'text/css; charset=utf-8');
+  return c.body(demoCss);
+});
+app.get('/demo.js', (c) => {
+  c.header('Content-Type', 'application/javascript; charset=utf-8');
+  return c.body(demoJavascript);
+});
+app.get('/demo/merchant', (c) => c.html(demoHtml));
+app.get('/demo/customer', (c) => c.html(demoHtml));
 for (const path of [
   '/',
   '/login',
