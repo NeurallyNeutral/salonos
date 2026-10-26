@@ -55,7 +55,7 @@ If network/package install needed, stop that operation and ask owner; proceed wi
 ```
 
 ## D. Budget and review
-Run GLM only in foreground. Use owner-approved capped OpenRouter key; verify profile reports `z-ai/glm-5.3` before coding. No autonomous tool/model escalation or provider fallback. Do not let any agent schedule background tasks. Owner reviews diffs and starts actual app with `npm run demo` on their own machine after source transfer/patch. Do not deploy or give GLM GitHub credentials. Do not add random skills/prompts to this handoff.
+Run GLM only in foreground. Use owner-approved capped OpenRouter key; **verify the ACTUAL resolved model** before coding. `z-ai/glm-5.3` (full) and `z-ai/glm-flash` / `glm-5.3-flash` are different model tiers; if the interface reports Flash when full GLM 5.3 was intended, STOP and ask the owner to correct model routing. No autonomous tool/model escalation or provider fallback. Do not let any agent schedule background tasks. Owner reviews diffs and starts actual app with `npm run demo` on their own machine after source transfer/patch. Do not deploy or give GLM GitHub credentials. Do not add random skills/prompts to this handoff.
 
 ## E. Strong warning
 A plain Hermes profile is **not** a root/filesystem jail, and 'don't browse GitHub' is only a procedural rule if the process still has network and account-wide credentials. Use a separate OS user/container for actual technical enforcement if necessary. Repository visibility is an owner setting; the source was observed PUBLIC on 26 Oct 2026. Do not change repository visibility automatically.
