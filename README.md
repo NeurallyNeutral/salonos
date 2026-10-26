@@ -2,7 +2,7 @@
 
 This branch is a **clean, source-complete implementation workspace** derived from the tested V3 Worker/D1 application. **It is not a deployed SaaS.** The frontend design and guided demonstrations are being replaced according to a fixed contract.
 
-**Start here:** [spec/00_START_HERE.md](spec/00_START_HERE.md). Then read `AGENTS.md` and the numbered specifications in order. There are no other active product/design missions.
+**Start here:** read `AGENTS.md`, then [spec/00_START_HERE.md](spec/00_START_HERE.md), then numbered specs 01–06 exactly once. Resume from `spec/IMPLEMENTATION_LOG.md`, not from the initial setup checklist. There are no other active product/design missions.
 
 ## Architecture
 - Real application: Hono/TypeScript on a Cloudflare Worker, D1, optional R2, authenticated tenant-scoped merchant APIs.
