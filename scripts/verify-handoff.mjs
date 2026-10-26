@@ -1,21 +1,16 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-// Clean GLM implementation handoff: explicitly protect code and required spec.
 const required = [
   'AGENTS.md',
   'README.md',
-  ...Array.from({ length: 7 }, (_, i) =>
-    'spec/' + String(i).padStart(2, '0') + '_' + [
-      'START_HERE',
-      'DESIGN_TOKENS',
-      'SCREEN_CONTRACTS',
-      'STATE_AND_COPY',
-      'API_AND_SECURITY_MAP',
-      'FILE_PLAN',
-      'DELIVERY_AND_TESTS',
-    ][i] + '.md',
-  ),
+  'spec/00_START_HERE.md',
+  'spec/01_DESIGN_TOKENS.md',
+  'spec/02_SCREEN_CONTRACTS.md',
+  'spec/03_STATE_AND_COPY.md',
+  'spec/04_API_AND_SECURITY_MAP.md',
+  'spec/05_FILE_PLAN.md',
+  'spec/06_DELIVERY_AND_TESTS.md',
   'spec/07_OWNER_LINUX_HANDOFF.md',
   'spec/IMPLEMENTATION_LOG.md',
   'src/index.ts',
@@ -35,14 +30,21 @@ const required = [
   'tests/bookings.test.mjs',
   'tests/release-config.test.mjs',
 ];
-for (const file of required)
+for (const file of required) {
   if (!fs.existsSync(path.resolve(file))) throw Error('Missing essential code/spec file: ' + file);
+}
 
-const forbidden = ['CODEX_START_PROMPT.txt', 'docs/CODEX_MISSION.md',
-  'docs/V2_CODEX_MISSION.md', 'reference/interactive_demo/index.html',
-  'reference/worker_scaffold/src/index.ts', 'wrangler.toml'];
-for (const file of forbidden)
+const forbidden = [
+  'CODEX_START_PROMPT.txt',
+  'docs/CODEX_MISSION.md',
+  'docs/V2_CODEX_MISSION.md',
+  'reference/interactive_demo/index.html',
+  'reference/worker_scaffold/src/index.ts',
+  'wrangler.toml',
+];
+for (const file of forbidden) {
   if (fs.existsSync(path.resolve(file))) throw Error('Stale or dangerous handoff file: ' + file);
+}
 
 const live = fs.readFileSync('src/index.ts', 'utf8');
 if (live.includes("'/api/reset'") || live.includes("'/api/state'"))
