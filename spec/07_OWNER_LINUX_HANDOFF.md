@@ -39,10 +39,10 @@ hermes profile create salonos-coder
 hermes -p salonos-coder setup
 hermes profile show salonos-coder
 cd ~/lab/build/active/salonos
-hermes -p salonos-coder chat
+hermes -p salonos-coder chat --toolsets file,terminal
 ```
-During **owner-operated** `setup` choose OpenRouter provider, model `z-ai/glm-5.3`, and enter your credential in Hermes' private config (do not paste key into source or chat). Use your own capped key/budget; set `terminal.cwd` to project path in that profile if supported. Profile `--clone-all` is PROHIBITED because it carries unrelated memory/skills; blank profile preferred. `hermes -p` avoids changing the user's active default profile.
-A Hermes profile isolates memory, skills and config **but does not technically restrict OS file access**. For strong isolation, run under a dedicated restricted OS account/container with only that checkout and model credential mounted. Disable unnecessary browser/web/GitHub tools; Hermes tool availability must be checked in the actual installation, not assumed.
+During **owner-operated** `setup`, choose **Blank Slate / minimal tools**, then configure OpenRouter provider, model `z-ai/glm-5.3`, and enter your credential in Hermes' private config (do not paste key into source or chat). Use your own capped key/budget; set `terminal.cwd` to project path in that profile if supported. Profile `--clone-all` is PROHIBITED because it carries unrelated memory/skills; blank profile preferred. `hermes -p` avoids changing the user's active default profile.
+A Hermes profile isolates memory, skills and config **but does not technically restrict OS file access**. Use `--toolsets file,terminal` on every session: unlike the default coding bundle, this excludes browser, web/search, GitHub MCP, memory search, skills, delegation, cron and background research tools. In the profile-only `config.yaml`, set `terminal.home_mode: profile` (if installed-version supports it) to avoid inheriting the host user's ordinary SSH/GitHub CLI home; this **still is not a filesystem sandbox**. For stronger isolation, run under a dedicated restricted OS account/container with only the checkout and model credential mounted. Verify actual enabled tools with `hermes -p salonos-coder tools`.
 
 ## C. First instruction to paste
 ```text
