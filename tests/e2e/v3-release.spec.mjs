@@ -40,11 +40,21 @@ test('V3 real storefront and merchant workspace are usable at phone and desktop 
   await expect(page.getByRole('heading', { name: 'Votre salon, en un regard.' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Ce qui demande votre attention' })).toBeVisible();
   await expect(page.locator('body')).toHaveJSProperty('scrollWidth', 390);
+  expect(await page.locator('.tabs').evaluate((nav) => nav.scrollWidth <= nav.clientWidth)).toBe(
+    true,
+  );
   await page.screenshot({ path: 'artifacts/v3/merchant-390.png', fullPage: true });
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.reload();
   await expect(page.getByRole('heading', { name: 'Ce qui demande votre attention' })).toBeVisible();
+  expect(await page.locator('.tabs').evaluate((nav) => nav.scrollWidth <= nav.clientWidth)).toBe(
+    true,
+  );
   await page.screenshot({ path: 'artifacts/v3/merchant-desktop.png', fullPage: true });
+  await page.goto('/shop/atelier-atlas');
+  await expect(page.getByRole('heading', { name: 'Atelier Atlas — Démo' })).toBeVisible();
+  await expect(page.locator('body')).toHaveJSProperty('scrollWidth', 1440);
+  await page.screenshot({ path: 'artifacts/v3/customer-desktop.png', fullPage: true });
   expect(errors).toEqual([]);
 });
 

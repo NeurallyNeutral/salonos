@@ -1,3 +1,4 @@
+# LOCAL DEVELOPMENT ONLY — never use this configuration for deployment.
 name = "salonos-handoff"
 main = "dist/worker.mjs"
 compatibility_date = "2026-07-30"

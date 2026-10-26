@@ -122,11 +122,23 @@ test('V2-B mobile catalog inquiry survives another browser and remains separate 
   const ctx = await browser.newContext({ viewport: { width: 360, height: 800 } }),
     owner = await ctx.newPage();
   await signin(owner, 'boutique@example.invalid');
+  expect(
+    await owner
+      .locator('.workspace-nav')
+      .first()
+      .evaluate((nav) => nav.scrollWidth <= nav.clientWidth),
+  ).toBe(true);
   await expect(
     owner.getByRole('heading', { name: 'Sac Alba · Demande mobile fictive' }),
   ).toBeVisible();
   await owner.evaluate(() => localStorage.clear());
   await owner.reload();
+  expect(
+    await owner
+      .locator('.workspace-nav')
+      .first()
+      .evaluate((nav) => nav.scrollWidth <= nav.clientWidth),
+  ).toBe(true);
   await owner
     .getByRole('searchbox', { name: 'Rechercher un client, article, téléphone ou référence' })
     .fill('Demande mobile fictive');

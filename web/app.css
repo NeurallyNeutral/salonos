@@ -664,9 +664,8 @@ header {
 }
 .merchant-view .tabs {
   flex-direction: row;
-  flex-wrap: nowrap;
-  overflow-x: auto;
-  scrollbar-width: thin;
+  flex-wrap: wrap;
+  overflow: visible;
 }
 .merchant-view .tabs button {
   flex: none;
@@ -704,8 +703,8 @@ header {
 @media (max-width: 640px) {
   .workspace-nav {
     flex-direction: row;
-    overflow-x: auto;
-    flex-wrap: nowrap;
+    overflow: visible;
+    flex-wrap: wrap;
   }
   .workspace-nav a {
     flex: none;

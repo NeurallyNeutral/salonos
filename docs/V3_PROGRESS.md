@@ -45,3 +45,9 @@ No live email, WhatsApp or payment verification is inferred from local fixtures.
 ## Interaction principles used
 
 The change from aggregate-first to today-first navigation applies [NN/g's visibility of system status and recognition over recall](https://www.nngroup.com/articles/ten-usability-heuristics/): an operator sees appointments and message problems before looking through reports. The close action on an inquiry and the setup step links apply its user-control principle. The field-level validation, retained values and one-screen inquiry context follow [Baymard's form-structure and label guidance](https://baymard.com/blog/form-design). These are design rationales, not measured SalonOS conversion improvements or human usability evidence.
+
+## Independent release QA
+
+An independent QA pass used a clean checkout of the pushed PR head and a separate local Worker/D1 test runtime. It found and fixed three release-evidence/usability issues: the manual-booking browser test could silently select tomorrow after closing time, the default Wrangler configuration could select local development settings during an unqualified deploy, and mobile merchant/catalog navigation clipped labels. Demo browser tests now also exercise reload and restart. Details and exact evidence are in [V3_INDEPENDENT_QA.md](V3_INDEPENDENT_QA.md).
+
+After these fixes, `npm run check` passed 37/37 Node tests, and `npm run test:e2e` passed 15/15 Chromium tests at 360px, 390px and 1440px, including actual storefront/merchant pages and both guided demos. Source safety, recovery, handoff, synthetic scenarios, performance, discovery dry-run and `npm audit` passed. Final-head GitHub CI must pass again after the QA update. Remote Cloudflare Access and private review remain unverified; overall private review/deployment decision is **NO-GO** until the owner configures and verifies the protected review environment.

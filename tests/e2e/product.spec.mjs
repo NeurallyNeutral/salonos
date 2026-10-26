@@ -57,22 +57,37 @@ test('merchant creates a manual appointment and configures a closure in the mobi
   page,
 }) => {
   await login(page);
+  const config = await (await page.request.get('/merchant/config')).json();
+  const tenantToday = config.local_today;
+  const localWeekday = new Date(tenantToday + 'T12:00:00Z').getUTCDay();
+  await page.getByRole('button', { name: 'Horaires', exact: true }).click();
+  await page.getByLabel('Équipe').selectOption(config.resources[0].id);
+  await page.getByLabel('Jour').selectOption(String(localWeekday));
+  await page.getByLabel('Ouverture').fill('00:00');
+  await page.getByLabel('Fermeture', { exact: true }).fill('23:55');
+  await page.getByRole('button', { name: 'Ajouter la plage' }).click();
   await page.getByRole('link', { name: 'Ajouter un rendez-vous' }).click();
-  const tenantToday = (await (await page.request.get('/merchant/config')).json()).local_today;
   await expect(page.getByLabel('Date souhaitée')).toHaveValue(tenantToday);
   await page.getByRole('button', { name: 'Voir les disponibilités' }).click();
-  if ((await page.getByRole('radio').count()) === 0) {
-    const followingDay = new Date(Date.parse(tenantToday + 'T12:00:00Z') + 86400000)
-      .toISOString()
-      .slice(0, 10);
-    await page.getByLabel('Date souhaitée').fill(followingDay);
-    await page.getByRole('button', { name: 'Voir les disponibilités' }).click();
-  }
+  await expect(page.getByRole('radio').first()).toBeVisible();
+  const sameDayOffers = await (
+    await page.request.get(
+      `/merchant/availability?service_id=${config.services[0].id}&date=${tenantToday}`,
+    )
+  ).json();
+  expect(sameDayOffers.slots.length).toBeGreaterThan(0);
+  expect(sameDayOffers.slots.every((slot) => slot.starts_at > Date.now())).toBe(true);
   await page.getByRole('radio').first().check();
   await page.getByLabel('Votre nom', { exact: true }).fill('Rendez-vous manuel fictif');
   await page.getByLabel('Téléphone avec indicatif').fill('+212600000078');
+  const createdResponse = page.waitForResponse(
+    (response) =>
+      response.url().endsWith('/merchant/bookings') && response.request().method() === 'POST',
+  );
   await page.getByRole('button', { name: 'Ajouter le rendez-vous', exact: true }).click();
+  const created = await (await createdResponse).json();
   await expect(page.getByRole('heading', { name: 'C’est dans l’agenda.' })).toBeVisible();
+  expect(created.starts_at).toBe(sameDayOffers.slots[0].starts_at);
   await page.getByRole('link', { name: 'Retour à l’agenda' }).click();
   await page.getByRole('button', { name: 'Horaires', exact: true }).click();
   const date = new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10);
