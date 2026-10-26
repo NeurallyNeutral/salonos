@@ -2,6 +2,8 @@
 
 **No design phase for GLM.** Implement the numbered specifications in this order. One milestone = focused files, tests, factual log. Never claim finished based only on tests.
 
+**Resume rule:** M0 is setup performed ONCE and logged. A file read, tool response, model summary or interrupted chain must NEVER restart M0/M1 automatically. Before every resumed coding session, inspect `spec/IMPLEMENTATION_LOG.md` and `git status --short`, identify the last confirmed successful edit/test and do exactly the next unfinished task. Do not reread the whole contract or re-run `npm ci` unless `package-lock.json` changed and installation is required. Stop and report `STATE_LOOP` after two repeated intentions without a tool action. Owner's current checkpoint is **after M2, before M3**.
+
 ## Milestone 0: baseline and cleanup sanity
 - Work only in provided source tree, no git remote, no browser or web calls.
 - Read AGENTS, specs 00..06. `npm run check`, `npm run test:handoff` if dependencies are installed. Record actual baseline in `spec/IMPLEMENTATION_LOG.md`.
