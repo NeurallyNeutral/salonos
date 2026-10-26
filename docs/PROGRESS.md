@@ -25,3 +25,6 @@ Milestone commits are on `codex/pilot-implementation` and PR #1. Separate `CODE_
 - [ ] Data/privacy legal review
 
 No production credentials are part of this archive.
+# V3 UX release (26 October 2026)
+
+V3 work, baseline failures, local evidence, remaining gates and owner-only release instructions are tracked in [V3_PROGRESS.md](V3_PROGRESS.md) and [V3_OWNER_RELEASE.md](V3_OWNER_RELEASE.md). `PILOT_READY: NO`; live providers, private remote review and human validation are unverified.

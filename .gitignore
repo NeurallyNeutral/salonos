@@ -1,6 +1,7 @@
 node_modules/
 .wrangler/
 .dev.vars
+wrangler.private-review.toml
 .env
 .env.*
 !.env.example
