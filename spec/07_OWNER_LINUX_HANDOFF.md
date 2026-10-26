@@ -22,6 +22,13 @@ cp -a "$src"/. ~/lab/build/active/salonos/
 cd ~/lab/build/active/salonos
 test ! -d .git || (echo 'WARNING: Git metadata present; owner must inspect remote' && git remote -v)
 ls spec
+# Owner creates a LOCAL-ONLY Git baseline (never add a remote).
+if [ ! -d .git ]; then
+  git init -q
+  git add -A
+  git -c user.name="SalonOS Local Owner" -c user.email="salonos-local@example.invalid" commit -qm "Local clean baseline"
+fi
+test -z "$(git remote)"
 ```
 Owner ensures target directory was empty/new before copying. ZIP deliberately contains no .git remote. Model may use local source tools but must not get GitHub access.
 
