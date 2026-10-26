@@ -58,8 +58,17 @@ test('merchant creates a manual appointment and configures a closure in the mobi
 }) => {
   await login(page);
   await page.getByRole('link', { name: 'Ajouter un rendez-vous' }).click();
+  const tenantToday = (await (await page.request.get('/merchant/config')).json()).local_today;
+  await expect(page.getByLabel('Date souhaitée')).toHaveValue(tenantToday);
   await page.getByRole('button', { name: 'Voir les disponibilités' }).click();
-  await page.getByRole('radio').nth(30).check();
+  if ((await page.getByRole('radio').count()) === 0) {
+    const followingDay = new Date(Date.parse(tenantToday + 'T12:00:00Z') + 86400000)
+      .toISOString()
+      .slice(0, 10);
+    await page.getByLabel('Date souhaitée').fill(followingDay);
+    await page.getByRole('button', { name: 'Voir les disponibilités' }).click();
+  }
+  await page.getByRole('radio').first().check();
   await page.getByLabel('Votre nom', { exact: true }).fill('Rendez-vous manuel fictif');
   await page.getByLabel('Téléphone avec indicatif').fill('+212600000078');
   await page.getByRole('button', { name: 'Ajouter le rendez-vous', exact: true }).click();

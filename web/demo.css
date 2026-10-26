@@ -1,0 +1,438 @@
+:root {
+  font-family: 'Segoe UI', Arial, sans-serif;
+  color: #253c37;
+  background: #f5f1e9;
+  --ink: #253c37;
+  --paper: #f5f1e9;
+  --rust: #bb7050;
+  --line: #d8d6ca;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+button,
+input {
+  font: inherit;
+}
+button {
+  cursor: pointer;
+}
+a {
+  color: inherit;
+}
+.skip {
+  position: absolute;
+  top: -100px;
+}
+.skip:focus {
+  top: 8px;
+  left: 8px;
+  z-index: 10;
+  background: white;
+  padding: 10px;
+}
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 21px clamp(20px, 4vw, 65px);
+  border-bottom: 1px solid var(--line);
+}
+.topbar > span {
+  font-size: 10px;
+  letter-spacing: 0.17em;
+  font-weight: 700;
+  text-align: center;
+}
+.wordmark {
+  font-weight: 700;
+  font-size: 24px;
+  letter-spacing: -0.08em;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.wordmark span {
+  font-weight: 400;
+}
+.topbar nav {
+  display: flex;
+  gap: 15px;
+  font-size: 12px;
+}
+main {
+  width: min(1380px, 100%);
+  flex: 1;
+  margin: auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 0.85fr);
+  align-items: center;
+  gap: clamp(15px, 5vw, 90px);
+  padding: clamp(25px, 6vh, 75px) clamp(20px, 6vw, 90px);
+}
+.copy {
+  max-width: 650px;
+  animation: arrive 0.55s ease both;
+}
+.eyebrow {
+  color: var(--rust);
+  font-size: 12px;
+  letter-spacing: 0.18em;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+h1 {
+  font-family: Georgia, serif;
+  font-weight: 400;
+  letter-spacing: -0.055em;
+  font-size: clamp(42px, 5.3vw, 88px);
+  line-height: 1.03;
+  margin: 20px 0 26px;
+}
+.copy > p:not(.eyebrow) {
+  font-size: clamp(16px, 1.45vw, 21px);
+  line-height: 1.6;
+  max-width: 570px;
+}
+.fact {
+  display: inline-block;
+  border-top: 1px solid var(--rust);
+  margin-top: 30px;
+  padding-top: 12px;
+  font-size: 12px;
+  color: #56635d;
+}
+.stage {
+  min-height: 420px;
+  background: #e8e0d2;
+  position: relative;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  padding: 25px;
+  border-radius: 3px;
+  animation: arrive 0.65s ease both;
+}
+.stage::before {
+  content: '';
+  position: absolute;
+  width: 62%;
+  aspect-ratio: 1;
+  border: 1px solid #9c9d8c88;
+  border-radius: 50%;
+  left: -25%;
+  top: -35%;
+}
+.stage::after {
+  content: '';
+  position: absolute;
+  width: 80%;
+  height: 1px;
+  background: #9c9d8c77;
+  transform: rotate(-24deg);
+  right: -20%;
+  bottom: 22%;
+}
+.art-card {
+  z-index: 1;
+  width: min(100%, 350px);
+  min-height: 285px;
+  background: #fbf8f1;
+  box-shadow: 17px 22px 50px #27302b21;
+  padding: 25px;
+  transform: rotate(-3deg);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 12px;
+}
+.art-card > small {
+  font-size: 10px;
+  letter-spacing: 0.19em;
+  font-weight: 700;
+}
+.art-card strong {
+  font-family: Georgia, serif;
+  font-size: 35px;
+  font-weight: 400;
+  line-height: 1.1;
+}
+.art-card p {
+  font-size: 13px;
+  line-height: 1.5;
+}
+.art-line {
+  height: 1px;
+  width: 70%;
+  background: var(--rust);
+  margin: 13px 0;
+}
+.sketch {
+  width: 100%;
+  height: 70px;
+  fill: none;
+  stroke: var(--rust);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.sketch path {
+  stroke-dasharray: 300;
+  stroke-dashoffset: 300;
+  animation: draw 1.5s ease 0.2s forwards;
+}
+.email-form {
+  margin-top: 28px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.email-form label {
+  width: 100%;
+  font-weight: 600;
+  font-size: 13px;
+}
+.email-form input {
+  min-width: 230px;
+  flex: 1;
+  padding: 14px;
+  border: 1px solid #a5aca2;
+  background: #fffdf8;
+  border-radius: 2px;
+}
+.email-form button,
+#next {
+  padding: 14px 22px;
+  border: 1px solid var(--ink);
+  background: var(--ink);
+  color: white;
+  border-radius: 2px;
+  font-weight: 600;
+}
+.simulation {
+  margin-top: 20px;
+  padding: 10px 15px;
+  border-left: 3px solid var(--rust);
+  background: #fff8ed;
+  font-size: 12px;
+}
+.mail-icon {
+  width: 140px;
+  height: 100px;
+  margin: auto;
+  position: relative;
+  border: 2px solid var(--ink);
+  border-radius: 4px;
+  transform: rotate(-4deg);
+  animation: mail-in 0.9s ease both;
+}
+.mail-icon::before,
+.mail-icon::after {
+  content: '';
+  position: absolute;
+  border-top: 2px solid var(--ink);
+  width: 95px;
+  top: 25px;
+}
+.mail-icon::before {
+  left: -2px;
+  transform: rotate(28deg);
+}
+.mail-icon::after {
+  right: -2px;
+  transform: rotate(-28deg);
+}
+.mail-icon span {
+  position: absolute;
+  display: block;
+  width: 86px;
+  height: 60px;
+  background: #fffdf8;
+  border: 1px solid var(--line);
+  top: -48px;
+  left: 24px;
+  animation: letter 1.4s ease 0.5s both;
+}
+.controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  padding: 18px clamp(20px, 4vw, 65px);
+  border-top: 1px solid var(--line);
+  background: #f5f1e9;
+}
+.progress-copy {
+  min-width: 160px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+.progress-track {
+  height: 3px;
+  width: 190px;
+  max-width: 28vw;
+  background: #c9cfc6;
+  margin-top: 8px;
+}
+.progress-track span {
+  display: block;
+  height: 100%;
+  background: var(--rust);
+  transition: width 0.35s ease;
+}
+.control-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.control-actions button {
+  min-height: 44px;
+  white-space: nowrap;
+}
+#back,
+#restart {
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--ink);
+  padding: 12px 15px;
+}
+#back:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+#restart {
+  font-size: 12px;
+}
+:focus-visible {
+  outline: 3px solid var(--rust);
+  outline-offset: 3px;
+}
+@keyframes arrive {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes mail-in {
+  from {
+    opacity: 0;
+    transform: translateY(25px) rotate(-12deg);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) rotate(-4deg);
+  }
+}
+@keyframes letter {
+  from {
+    opacity: 0;
+    transform: translateY(38px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@media (max-width: 800px) {
+  .topbar > span {
+    display: none;
+  }
+  main {
+    grid-template-columns: 1fr;
+    padding-top: 25px;
+    padding-bottom: 20px;
+    gap: 20px;
+  }
+  .stage {
+    min-height: 190px;
+  }
+  .art-card {
+    min-height: 145px;
+  }
+  h1 {
+    font-size: clamp(38px, 9vw, 62px);
+  }
+}
+@media (max-width: 470px) {
+  .topbar {
+    padding: 14px 18px;
+  }
+  .topbar nav {
+    gap: 8px;
+  }
+  .controls {
+    flex-wrap: wrap;
+    padding: 12px 16px;
+  }
+  .progress-copy {
+    width: 100%;
+  }
+  .progress-track {
+    max-width: none;
+    width: 100%;
+  }
+  .control-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+  #back,
+  #next,
+  #restart {
+    padding: 10px;
+    font-size: 12px;
+  }
+  .stage {
+    min-height: 155px;
+  }
+  .art-card {
+    min-height: 120px;
+    padding: 14px;
+  }
+  .art-card strong {
+    font-size: 23px;
+  }
+  .art-card p,
+  .art-card .art-line,
+  .sketch {
+    display: none;
+  }
+  .mail-icon {
+    transform: scale(0.6) rotate(-4deg);
+    height: 65px;
+    margin: -10px auto;
+  }
+  h1 {
+    margin: 12px 0 16px;
+  }
+  .copy > p:not(.eyebrow) {
+    font-size: 15px;
+    line-height: 1.45;
+  }
+  .fact {
+    margin-top: 16px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

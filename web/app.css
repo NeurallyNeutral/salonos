@@ -508,3 +508,226 @@ input[type='file'] {
   object-fit: cover;
   border-radius: 12px;
 }
+
+/* V3: warm storefront and precise daily workspace share a restrained token scale. */
+:root {
+  --green: #243e39;
+  --muted: #53615c;
+  --line: #dcded5;
+  --sand: #eae4d7;
+  --ivory: #f9f7f1;
+  --accent: #ba694a;
+  --radius: 14px;
+  background: var(--ivory);
+}
+main {
+  max-width: 1220px;
+}
+.card {
+  border-radius: var(--radius);
+  box-shadow: 0 8px 28px #253b3210;
+}
+header {
+  background: var(--ivory);
+}
+.tabs {
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 10px;
+}
+.tabs button {
+  border-radius: 100px;
+}
+.workspace-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 26px 0;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 10px;
+}
+.workspace-nav a {
+  padding: 11px 14px;
+  text-decoration: none;
+  border-radius: 8px;
+  color: var(--green);
+  font-weight: 600;
+}
+.workspace-nav a:hover,
+.workspace-nav a[aria-current='page'] {
+  background: var(--green);
+  color: white;
+}
+.today-panel {
+  border: 1px solid var(--line);
+  border-left: 5px solid var(--accent);
+  padding: clamp(22px, 4vw, 38px);
+  background: white;
+  border-radius: var(--radius);
+}
+.today-panel h2 {
+  margin: 5px 0 14px;
+}
+.today-panel .pill {
+  margin-left: 12px;
+}
+.search-bar {
+  display: flex;
+  align-items: end;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.search-bar label {
+  flex: 1;
+  min-width: min(100%, 280px);
+}
+.field-error {
+  display: block;
+  color: #9b332d;
+  font-weight: 600;
+  margin: 5px 0;
+}
+[aria-invalid='true'] {
+  border-color: #9b332d;
+  box-shadow: 0 0 0 2px #9b332d22;
+}
+[hidden] {
+  display: none !important;
+}
+.customer-view > header,
+.customer-view > footer {
+  display: none;
+}
+.customer-view main {
+  max-width: 1120px;
+  padding-top: clamp(18px, 4vw, 50px);
+}
+.customer-view .store-hero {
+  background: var(--sand);
+  border-radius: 3px;
+  position: relative;
+  overflow: hidden;
+  padding: clamp(30px, 7vw, 85px);
+}
+.customer-view .store-hero::after {
+  content: '';
+  position: absolute;
+  right: -30px;
+  top: -70px;
+  width: 210px;
+  height: 280px;
+  border: 1px solid #887e6950;
+  border-radius: 50%;
+  transform: rotate(28deg);
+  pointer-events: none;
+}
+.customer-view h1,
+.customer-view h2 {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-weight: 400;
+}
+.customer-view h1 {
+  font-size: clamp(42px, 7vw, 78px);
+}
+.customer-view .store-headline {
+  max-width: 580px;
+  color: #3d554b;
+}
+.customer-view .product {
+  border: 0;
+  background: #fffdf8;
+  box-shadow: 0 8px 25px #493e2d12;
+}
+.customer-view .product-art {
+  border-radius: 2px;
+  background: #e4dbca;
+  color: #6c5b4b;
+}
+.customer-view .art-1 {
+  background: #ded4c6;
+}
+.customer-view .art-2 {
+  background: #d8ded3;
+}
+.customer-view .product-photo {
+  border-radius: 2px;
+}
+.customer-view .button,
+.customer-view button {
+  border-radius: 2px;
+}
+.customer-view #inquiry-form {
+  scroll-margin-top: 24px;
+}
+.merchant-view > header nav a[href='/signup'],
+.merchant-view > header nav #demo-link {
+  display: none !important;
+}
+.merchant-view .tabs {
+  flex-direction: row;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+.merchant-view .tabs button {
+  flex: none;
+  white-space: nowrap;
+}
+.workspace-more {
+  margin-top: 55px;
+  border-top: 1px solid var(--line);
+}
+.workspace-more nav {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+.setup-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin: 22px 0;
+}
+.setup-steps a {
+  border: 1px solid var(--line);
+  border-radius: 100px;
+  padding: 8px 12px;
+  text-decoration: none;
+  font-size: 12px;
+  font-weight: 600;
+}
+.setup-steps a[aria-current='step'] {
+  background: var(--green);
+  color: white;
+  border-color: var(--green);
+}
+@media (max-width: 640px) {
+  .workspace-nav {
+    flex-direction: row;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+  }
+  .workspace-nav a {
+    flex: none;
+  }
+  .today-panel .pill {
+    display: block;
+    width: fit-content;
+    margin: 12px 0 0;
+  }
+  .customer-view main {
+    padding-inline: 16px;
+  }
+  .customer-view .store-hero {
+    margin-inline: -16px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
