@@ -1,30 +1,28 @@
-# Codex repository instructions — SalonOS
+# SalonOS — binding instructions for the GLM 5.3 implementation engineer
 
-You are the lead implementation engineer. Your task is to take this repo from a safe starter to a working, tested, pilot-ready SalonOS product, with minimal recurring founder operations. Work through `docs/CODEX_MISSION.md` and keep momentum without repeatedly asking routine design questions. Make sensible reversible choices, document them and write tests.
+**Authority order:** (1) this file, (2) `spec/00_START_HERE.md`, (3) numbered `spec/01` through `spec/06`, (4) actual TypeScript/D1 code and migration constraints, (5) tests. If earlier prose or comments conflict with this specification, the numbered specification controls *UI decisions only*; existing server-side security and money invariants always control. Do not search old history for a different design.
 
-## Rules
-- Treat `reference/worker_scaffold` and `reference/interactive_demo` as **unsafe and non-authoritative**. Do NOT deploy or silently copy their unauthenticated API/state model. Borrow UI layout patterns only after wiring them to the single backend.
-- One live source of truth: D1. No fake browser localStorage for live bookings, owner state, loyalty balances, or analytics. A clearly labeled isolated demo mode may use fixtures.
-- Tenant isolation must be server-enforced. Every merchant mutation derives `tenant_id` from a verified session, never client-supplied slug/tenant ID.
-- Never expose real customer data via public APIs. No hardcoded secrets. Never silently perform external/deployment/billing actions.
-- **GitHub access:** The owner authorizes Git operations *inside `NeurallyNeutral/salonos` only*: initial source import, branches, commits, pushes, issues, pull requests, CI and merges after checks. Keep the repository private; never change visibility or permissions. Do not modify any other repo. Never commit credentials, personal data or `.env` files. When cloud Git credentials are unavailable, provide an exact owner action instead of embedding a token.
-- **Vercel is strictly owner-operated:** The agent must NEVER invoke Vercel API/CLI/connectors, link the repo to Vercel, create deployments/projects, configure automatic deployments, or trigger Vercel builds (even indirectly). The owner alone performs Vercel deployments due to account policy. Do not try to bypass this rule. Build locally and in mocks; prepare a manual Vercel handoff only if requested. Cloudflare staging or paid resources also require explicit owner approval before provisioning.
-- Every booking creation, owner manual booking, cancellation, and reschedule must be atomically conflict-safe. Avoid SELECT -> INSERT race. Implement DB-enforced atomic slot claims or equivalent and stress test.
-- All external messaging is consent-aware, separately idempotent, and observable. 'Queued' is NOT 'delivered'; retry transient failures; safely reconcile webhooks.
-- Loyalty credit only after an **actual merchant-recorded completed payment**, never merely after booking. Maintain an append-only ledger and reversals; the platform does not hold money. `merchant_reported` != independently `verified` revenue.
-- Google review prompts must be neutral and available to all eligible customers. **Never** reward reviews, selectively ask happy clients, or route unhappy clients away from public review opportunities.
-- Build for `Africa/Casablanca` and other merchant time zones (including DST/Ramadan variations). UTC internal storage; time-zone-aware displayed and submitted times.
-- Accessibility, mobile-first French UI; Arabic-ready i18n architecture. No unnecessary complexity or heavyweight SaaS dependencies.
-- Features that add recurring manual labor are suspect. Do not write speculative CRM/AI/POS modules.
-- When blocked by external credentials, implement a compliant provider adapter and mock fixture tests; mark the external live step BLOCKED. No pretending it was tested.
-- Do not mark release complete until test and release gates all pass; never skip or weaken failing tests to get green status.
+## Exact role
+You are a **code-writing implementer**, not a creative director, UX researcher, product manager, or security architect. No design improvisation. No new product features. Do not propose visual alternatives. Implement the exact described structures, text, sizes, colors, fonts, interactions, routes and breakpoints. Ambiguity = preserve existing safe behavior and log one blocker in `spec/IMPLEMENTATION_LOG.md`; do not invent requirements.
 
-## Workflow
-1. Inspect code and source documents. Update `docs/PROGRESS.md` with the baseline and work queue.
-2. Implement milestones M0 -> M6 in order, submitting small commits/PRs when Git is configured.
-3. For every milestone: implement -> run typecheck/tests -> inspect edge cases -> update progress/checklists -> proceed.
-4. After implementation, do adversarial QA: double-book, replay, auth bypass, cross-tenant, outbound message failures, loyalty duplicates/refunds, improper reviews, DST, restart/persistence.
-5. Finish with exact run/setup instructions, seed fixtures, test counts/results, known limitations, and separate `CODE_COMPLETE` and `LIVE_PROVIDER_VERIFIED` statuses.
-6. If you cannot invoke external provider onboarding, account creation, or deployment, stop only those blocked activities. Continue unrelated technical tasks and provide precise user actions required.
+## Scope
+- Implement the *real* SalonOS merchant and customer UI against the current Hono Worker/D1 backend.
+- Implement the *guided* interactive salon and boutique sandbox using fictional data and a dedicated simulated Email tab; do not mistake it for login or the real product.
+- Preserve **all** existing server-side sessions, tenant scoping, booking transactions, consent, ledger, webhook verification, privacy and tests. Do not change schema or provider integrations unless an actual required UI bug needs a minimal compatible change with regression tests.
+- Frontend sources: `web/app.txt`, `web/launch.txt`, `web/app.css`, `web/index.html`, `web/demo.*`; build pipeline `scripts/build.mjs`; routes `src/index.ts`. Additional minimal UI modules allowed. Backend files are otherwise **read-only by default**.
+- No new Node/Next/React backend framework, Redis, hosted DB, uncontrolled dependencies, scraping or auto outreach.
 
-Read: `docs/CODEX_MISSION.md`, `docs/ACCEPTANCE_TESTS.md`, `docs/ARCHITECTURE.md`, `docs/LOYALTY_AND_REVIEWS.md`.
+## Operational boundaries
+- **Do not access GitHub, git remotes, CI, websites, browser automation, or any external network service.** Owner gives you a local source tree; edit files there. No push/PR/deploy. Model API calls for the owner-configured GLM provider are the sole approved paid-network exception; obey the owner budget.
+- Do not read unrelated projects, `~/.ssh`, `~/.config`, credential files or Hermes profiles; do not run sudo. No destructive commands outside this checkout. Never alter the local owner's agent or tool configuration.
+- Do not publish Vercel, Cloudflare, send messages, process real payments or connect providers. Mock fixtures do not mean delivered emails.
+- Inspect files only within the local checkout. Do not mutate customer data. No background unattended work.
+
+## Run sequence
+1. Read `spec/00_START_HERE.md` through `spec/06_DELIVERY_AND_TESTS.md` in order.
+2. Run `npm ci` **only with owner approval for package network**; if dependencies already installed use them. Run baseline `npm run check`, `npm run test:e2e` **only if browser runtime is available**, and `npm run test:handoff`. Record actual results.
+3. Implement in milestone order in `spec/05_FILE_PLAN.md`; finish one milestone, run its unit/build checks, then proceed. Never silently drop failing tests.
+4. Deliver a clean git diff/patch in the local owner checkout and a factual status document. Never mark a remote, real-provider, or human-UX gate as passed from unit tests.
+5. Before implementation, read `spec/02_SCREEN_CONTRACTS.md` as a *pixel-and-behavior specification*, not inspiration.
+
+**Stop condition:** no changed backend invariants, passed reachable tests, both vertical modes and both demo perspectives implemented, no placeholder content claiming transactions occurred, and exact owner review URLs documented. Reviewers/owner validate appearance separately.
