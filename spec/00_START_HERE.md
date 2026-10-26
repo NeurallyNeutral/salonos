@@ -27,7 +27,7 @@ AI agents, subscription billing, inventory/checkout, online payment, direct Inst
 Previous bounded Worker tests passed 37/37 and browser flows 15/15 at the baseline. These prove limited application behavior, **not** product/design acceptance. The owner explicitly rejected the current UI as confusing and aesthetically inadequate. The onboarding hides legacy monolithic forms; the demo shows text slides, not workflow. Do not preserve that appearance.
 
 ## Single implementation authority
-`AGENTS.md` -> `00_START_HERE` -> `01_DESIGN_TOKENS` -> `02_SCREEN_CONTRACTS` -> `03_STATE_AND_COPY` -> `04_API_MAP` -> `05_FILE_PLAN` -> `06_DELIVERY_AND_TESTS`. This hierarchy replaces ALL prior product/agent prompts. Do not ask the owner to choose colors, fonts, navigation, layouts or copy; they are set in these files.
+`AGENTS.md` -> `00_START_HERE` -> `01_DESIGN_TOKENS` -> `02_SCREEN_CONTRACTS` -> `03_STATE_AND_COPY` -> `04_API_AND_SECURITY_MAP` -> `05_FILE_PLAN` -> `06_DELIVERY_AND_TESTS`. This hierarchy replaces ALL prior product/agent prompts. Do not ask the owner to choose colors, fonts, navigation, layouts or copy; they are set in these files.
 
 ## Hard distinction: actual vs simulated
 Real signup: email goes to actual mailbox through configured provider, link consumed server-side; development may use protected localhost fixture. Demo signup: fictional tab animation, no requests and no verified account. Real booking/inquiry writes to D1; demo booking/inquiry only updates ephemeral sandbox state. Neither mode may falsely claim a payment or message was actually sent.
